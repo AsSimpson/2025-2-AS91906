@@ -129,22 +129,9 @@ def simple_questions():
 
 
 def medium_questions():
-    num = random.randint(10, 500)  # Random number for the question
-    correct_answer = math.sqrt(num)  # Compute the correct square root
-    correct_answer = round(correct_answer, 2)
-
-    question = f'''What is the approximate square root of {num}?'''
-
-    # print("Welcome to 'Closest to the Answer'! Try to estimate the square root.")
-    #
-    # print(f"What is the approximate square root of {num}?")
-    # user_guess = float(input("Your guess: "))
-    #
-    # error = abs(user_guess - correct_answer)
-    # print(f"Actual answer: {correct_answer}")
-    # print(f"Your error: {round(error, 2)}\n")
-    return question, correct_answer
-
+    num = random.randint(10, 500)
+    correct_answer = round(math.sqrt(num), 2)
+    return f"What is the approximate square root of {num}?", correct_answer
 
 def render_text(surface, text, pos, font, color=(0, 0, 0)):
     text_surface = font.render(text, True, color)
@@ -153,69 +140,51 @@ def render_text(surface, text, pos, font, color=(0, 0, 0)):
 
 def game_main():
     root.destroy()
-
-    # Pygame initialise
     pygame.init()
     math_window = pygame.display.set_mode((960, 540))
     pygame.display.set_caption("Math Questions")
-
     font = pygame.font.Font(None, 50)
     input_box = pygame.Rect(400, 300, 140, 50)
+    color_inactive, color_active = pygame.Color('lightskyblue3'), pygame.Color('dodgerblue2')
+    color, active, text, score = color_inactive, False, '', 0
 
-    color_inactive = pygame.Color('lightskyblue3')
-    color_active = pygame.Color('dodgerblue2')
-    color = color_inactive
-
-    active = False
-    text = ''
-    score = 0
-
-    if hardness_choice == "easy": question, correct_answer = simple_questions()
-    elif hardness_choice == "medium": question, correct_answer = medium_questions()
+    def get_question():
+        if hardness_choice == "easy": return simple_questions()
+        elif hardness_choice == "medium": return medium_questions()
+        return "TBD", 0  # Placeholder for "Difficult"
+    question, correct_answer = get_question()
     result_text = ""
 
     while True:
         math_window.fill((255, 255, 255))
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 main()
                 sys.exit()
-
             if event.type == MOUSEBUTTONDOWN:
-                if input_box.collidepoint(event.pos):
-                    active = not active
-                else:
-                    active = False
+                active = input_box.collidepoint(event.pos)
                 color = color_active if active else color_inactive
+            if event.type == KEYDOWN and active:
+                if event.key == K_RETURN:
+                    try:
+                        if float(text) == correct_answer:
+                            result_text, score = "Correct!", score + 1
+                        else:
+                            result_text = f"Wrong! Answer: {correct_answer}"
+                        text, question, correct_answer = '', *get_question()
+                    except ValueError:
+                        result_text = "Enter a valid number!"
+                elif event.key == K_BACKSPACE:
+                    text = text[:-1]
+                else:
+                    text += event.unicode
 
-            if event.type == KEYDOWN:
-                if active:
-                    if event.key == K_RETURN:
-                        try:
-                            if float(text) == correct_answer:
-                                result_text = "Correct!"
-                                score += 1
-                            else:
-                                result_text = f"Wrong! Answer: {correct_answer}"
-                            text = ''
-                            question, correct_answer = simple_questions()
-                        except ValueError:
-                            result_text = "Enter a valid number!"
-                    elif event.key == K_BACKSPACE:
-                        text = text[:-1]
-                    else:
-                        text += event.unicode
-
-        render_text(math_window, f"Solve: {question} = ?", (350, 200), font)
-        render_text(math_window, f"Score: {score}", (50, 50), font)
-        render_text(math_window, result_text, (350, 400), font, (255, 0, 0))
-
+        math_window.blit(font.render(f"Solve: {question} = ?", True, (0, 0, 0)), (350, 200))
+        math_window.blit(font.render(f"Score: {score}", True, (0, 0, 0)), (50, 50))
+        math_window.blit(font.render(result_text, True, (255, 0, 0)), (350, 400))
         pygame.draw.rect(math_window, color, input_box, 2)
-        txt_surface = font.render(text, True, (0, 0, 0))
-        math_window.blit(txt_surface, (input_box.x + 5, input_box.y + 5))
-
+        math_window.blit(font.render(text, True, (0, 0, 0)), (input_box.x + 5, input_box.y + 5))
         pygame.display.flip()
 
 

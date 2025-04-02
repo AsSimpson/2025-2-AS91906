@@ -3,7 +3,7 @@ import pygame
 pygame.init()
 
 game_screen = pygame.display.set_mode((960, 540))
-pygame.display.set_caption("Math Exploration")
+pygame.display.set_caption("Math Display")
 
 background_1 = pygame.image.load('assets/oak_woods_v1.0/oak_woods_v1.0/background/background_layer_1.png').convert_alpha()
 background_2 = pygame.image.load('assets/oak_woods_v1.0/oak_woods_v1.0/background/background_layer_2.png').convert_alpha()
