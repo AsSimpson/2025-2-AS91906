@@ -170,8 +170,8 @@ def game_main():
     text = ''
     score = 0
 
-    if hardness_choice == "easy": question, correct_answer = simple_questions()
-    elif hardness_choice == "medium": question, correct_answer = medium_questions()
+    question, correct_answer = simple_questions()
+
     result_text = ""
 
     while True:
