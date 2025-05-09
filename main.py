@@ -1,36 +1,80 @@
 from tkinter import *
 import tkinter.font as tkFont
-import pygame
+import random
 
 
-def setup_main_window_widgets():
-    Button(frame_2, text="Setting", font = font_1).grid(row = 0, column = 0, padx=250, pady=70)
-    Button(frame_2, text="Records", font = font_1).grid(row = 1, column = 0)
-    Button(frame_2, text="Quit", font = font_1, command = quit).grid(row = 0, column = 1)
-    Button(frame_2, text="Start", font = font_1).grid(row = 1, column = 1)
+class Menu:
+    def __init__(self):
+        # Configure menu window
+        self.root = Tk()
+        self.root.geometry("400x500")
+        self.root.title("Math quizlet")
+
+        # Define fonts
+        global font_1, font_1_medium, font_2, font_2_medium
+        font_1 = tkFont.Font(family="Agency FB", size=20, weight="bold")
+        font_1_medium = tkFont.Font(family="Agency FB", size=30, weight="bold")
+        font_2 = tkFont.Font(family="Georgia", size=16, weight="bold")
+        font_2_medium = tkFont.Font(family="Georgia", size=30, weight="bold")
+
+        self.widget()
+
+        self.root.mainloop()
+
+    def widget(self):
+        self.root.grid_columnconfigure(0, weight=1)
+        # Configure 4 rows with equal height
+        for i in range(4):
+            self.root.grid_rowconfigure(i, weight=1)
+
+        Button(self.root, text = "Start", font = font_1, command=lambda: MathQuizlet()).grid(
+            column=0, row=0, sticky="nsew", padx=10, pady=10
+        )
+        Button(self.root, text = "Records", font = font_1).grid(
+            column=0, row=1, sticky="nsew", padx=10, pady=10
+        )
+        Button(self.root, text = "Settings", font = font_1).grid(
+            column=0, row=2, sticky="nsew", padx=10, pady=10
+        )
+        Button(self.root, text='Quit', font=font_1, command=quit).grid(
+            column=0, row=3, sticky='nsew', padx=10, pady=10
+        )
 
 
-def main():
-    global frame_1, frame_2, font_1, font_2, font_3, font_4
-    root = Tk()
-    root.geometry("1280x720")
-    root.title("Math Exploration")
 
-    # define fonts
-    font_1 = tkFont.Font(family="Agency FB", size=20, weight="bold")
-    font_2 = tkFont.Font(family="Agency FB", size=30, weight="bold")
-    font_3 = tkFont.Font(family="Arial", size=11, weight="bold")
-    font_4 = tkFont.Font(family="Cooper Black", size=18, weight='normal')
+class MathQuizlet:
+    def __init__(self):
+        self.quiz_window = Toplevel(bg="lightblue")
+        self.quiz_window.geometry("500x400")
 
-    frame_1 = Frame(root, bg= "#e9c46a")
-    frame_2 = Frame(root, bg = "#f4a261")
-    frame_1.place(relheight=0.5, relwidth=1, rely=0)
-    frame_2.place(relheight=0.5, relwidth=1, rely=0.5)
+        self.a = random.randint(10, 20)
+        self.b = random.randint(10, 20)
+        self.sign = random.choice(['+', '-', 'x', '/'])
 
-    setup_main_window_widgets()
+        self.question = f'''Find the value of {self.a} {self.sign} {self.b}.'''
+
+        if self.sign == '+':
+            self.answer = self.a + self.b
+        elif self.sign == '-':
+            self.answer = self.a - self.b
+        elif self.sign == 'x':
+            self.answer = self.a * self.b
+        elif self.sign == '/':
+            self.answer = self.a / self.b
+
+        self.quiz_widgets()
+
+    def quiz_widgets(self):
+        Label(self.quiz_window, text=self.question, font=font_2, bg='lightblue').grid(
+            column=0, row=0, padx=20, pady=20, sticky='nsew'
+        )
+        Entry(self.quiz_window).grid(
+            column=0, row=1, padx=20, pady=20, sticky='nsew'
+        )
 
 
-    root.mainloop()
+math_quiz = Menu
 
 if __name__ == "__main__":
-    main()
+    math_quiz()
+
