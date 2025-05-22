@@ -10,7 +10,7 @@ class Menu:
         self.root = Tk()
         self.root.geometry("400x500")
         self.root.title("Math quizlet")
-        self.root.configure(bg="#9A4C95")
+        self.root.configure(bg="orange")
 
         # Define fonts
         global font_1, font_1_medium, font_2, font_2_medium
@@ -61,7 +61,7 @@ class Menu:
         for i in range(4):
             self.root.grid_rowconfigure(i, weight=1)
 
-        Button(self.root, text = "Start", font = font_1, bg="#F08CAE", command=lambda: MathQuizlet(self.root)).grid(
+        Button(self.root, text = "Start", font = font_1, bg="#F08CAE", command=MathQuizlet).grid(
             column=0, row=0, sticky="nsew", padx=10, pady=10
         )
         Button(self.root, text = "Records", font = font_1, bg="#F08CAE").grid(
