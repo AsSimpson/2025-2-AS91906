@@ -7,31 +7,10 @@ from tkinter import messagebox
 from tkinter.ttk import Combobox
 from PIL import Image
 
-
-def show_error(object_name):
-    # Define a function to clear the content of the text widget
-    def click(event):
-        object_name.delete(0, END)
-        object_name.configure(bg="white")
-        object_name.unbind('<Button-1>', clicked)
-
-    object_name.configure(bg="firebrick1")
-    clicked = object_name.bind('<Button-1>', click)
+from constants import *
+from utilities import *
 
 
-def preview(widget_name):
-    # Define a function to clear the content of the text widget
-    def click(event):
-        widget_name.delete(0, END)
-        widget_name.configure(fg='black')
-        widget_name.unbind('<Button-1>', clicked)
-
-    widget_name.configure(fg='red')
-    widget_name.insert(0, "Enter Receipt Number here. ")
-    clicked = widget_name.bind('<Button-1>', click)
-
-
-# Check if the inputs are valid
 def check_inputs():
     input_check = 0
 
@@ -106,7 +85,6 @@ def save_receipt_to_file(receipt_number):
         file.write(f"Receipt Number: {entry_ReceiptNumber.get()}\n")
 
 
-
 def delete_receipt_file(receipt_number):
     file_path = f'savedata/{receipt_number}.txt'
     if os.path.exists(file_path):
@@ -125,55 +103,6 @@ def delete_receipt():
             return
     messagebox.showerror(title="error", message="Receipt number not found")
     show_error(delete_item)
-
-
-# Random receipt number generator
-def random_receipt():
-    randNum = random.randint(1, 2000)
-    if len(entry_ReceiptNumber.get()) != 0:
-        entry_ReceiptNumber.delete(0, "end")
-    entry_ReceiptNumber.insert(0, str(randNum))
-    entry_ReceiptNumber.configure(bg="white")
-
-
-def pin_window():
-    if str(button_pin['bg']) != 'gray':
-        root.attributes('-topmost', True)
-        button_pin.configure(bg='gray', text="Unpin Window")
-    elif str(button_pin['bg']) == 'gray':
-        root.attributes('-topmost', False)
-        button_pin.configure(bg='SeaGreen3', text="Pin Window")
-
-
-def animation(current_frame=0):
-    global loop, loop_2
-    image = photoimage_objects[current_frame]
-
-    gif_label.configure(image=image)
-
-    current_frame += 1
-
-    if current_frame == frames:
-        current_frame = 0
-
-    loop = title_frame.after(50, lambda: animation(current_frame))
-    # loop_2 = title_frame.after(50, lambda: animation(current_frame))
-
-
-def gif_image():
-    global title_frame, photoimage_objects, photoimage_objects_2, gif_label, gif_label_2
-    title_frame = Frame(main_f, bg='gold2')
-    title_frame.place(anchor=NW, relx=0, rely=0, relheight=0.25, relwidth=1)
-
-    photoimage_objects = []
-    for i in range(frames):
-        obj = PhotoImage(file=gif_file, format=f"gif -index {i}")
-        photoimage_objects.append(obj)
-
-    gif_label = Label(title_frame, bg='gold2', image="")
-    gif_label.place(x=70, y=0)
-
-    animation(current_frame=0)
 
 
 def receipt_window():
@@ -221,8 +150,21 @@ def receipt_window():
     counters['name_count'] = name_count
 
 
+# Random receipt number generator
+def random_receipt():
+    randNum = random.randint(1, 2000)
+    if len(entry_ReceiptNumber.get()) != 0:
+        entry_ReceiptNumber.delete(0, "end")
+    entry_ReceiptNumber.insert(0, str(randNum))
+    entry_ReceiptNumber.configure(bg="white")
+
 # Create the buttons and labels
 def setup_widgets():
+    #   import images
+    button_image = PhotoImage(file=r"images/printer.png")
+    quit_image = PhotoImage(file=r"images/quit button.png")
+    append_image = PhotoImage(file=r"images/append.png")
+
     global entry_Name, entry_ReceiptNumber, entry_ItemsNumber, delete_item, entry_ItemsPurchased, middle, bottom, \
         button_pin, print_details, main_f
     # Main columns
@@ -276,55 +218,3 @@ def setup_widgets():
                            command=receipt_window)
     print_details.grid(column=2, row=1, padx=10, pady=12)
 
-
-def main():
-    global root, fontNum1, fontNum2, fontNum3, fontNum4, button_image, quit_image, append_image, gif_file, gif_file_2, \
-        info, info_2, frames, frames_2, bg_image, icon
-    root = Tk()
-    root.geometry("750x650")
-    root.title("*" * 50 + "Party Purchase" + "*" * 50)
-    root.configure(bg='lightblue')
-
-    # Set the window icon
-    icon_path = r"images/Linux_logo.png"  # Ensure you have an 'icon.png' file in the same directory
-    icon = PhotoImage(file=icon_path)
-    root.iconphoto(False, icon)
-
-    # import gif image
-    gif_file = r"images/giphy3.1.gif"
-    info = Image.open(gif_file)
-    frames = info.n_frames  # number of frames
-
-    # define fonts
-    fontNum1 = tkFont.Font(family="Agency FB", size=20, weight="bold")
-    fontNum2 = tkFont.Font(family="Agency FB", size=30, weight="bold")
-    fontNum3 = tkFont.Font(family="Arial", size=11, weight="bold")
-    fontNum4 = tkFont.Font(family="Cooper Black", size=18, weight='normal')
-
-    #   import images
-    button_image = PhotoImage(file=r"images/printer.png")
-    quit_image = PhotoImage(file=r"images/quit button.png")
-    append_image = PhotoImage(file=r"images/append.png")
-
-    # Start the GUI
-    setup_widgets()
-    gif_image()
-
-    messagebox.showinfo(title="Tips(1/2):", message="To record purchases by using this program, input all the required"
-                                                    " information, then click the button 'Submit'. To print"
-                                                    " the information, please click the button 'Details Window. ")
-    messagebox.showinfo(title="Tips(2/2):", message="Having trouble with thinking about receipt numbers all day? "
-                                                    "You can actually generate a random receipt number by click the"
-                                                    " button 'Random Number' beside 'Receipt Number' entry box. ")
-
-    root.mainloop()
-
-
-# Change the working directory to the temp folder created by PyInstaller
-if getattr(sys, 'frozen', False):  # If the script is compiled
-    os.chdir(sys._MEIPASS)
-
-counters = {'total_entries': 0, 'name_count': 0}
-Items_details = []
-
-main()
