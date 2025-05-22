@@ -3,12 +3,14 @@ import tkinter.font as tkFont
 import random
 
 
+
 class Menu:
     def __init__(self):
         # Configure menu window
         self.root = Tk()
         self.root.geometry("400x500")
         self.root.title("Math quizlet")
+        self.root.configure(bg="#9A4C95")
 
         # Define fonts
         global font_1, font_1_medium, font_2, font_2_medium
@@ -20,6 +22,38 @@ class Menu:
         self.widget()
 
         self.root.mainloop()
+        
+    def clear_root(self, next_menu="main"):
+        """Clears root and loads either the main menu or the settings menu."""
+        for widget in self.root.winfo_children():
+            widget.destroy()
+
+        # Configure 4 rows with equal height
+        self.root.grid_columnconfigure(0, weight=1)
+
+        if next_menu == "settings":
+            self.setting_widgets()
+        else:
+            self.widget()
+
+    def setting_widgets(self):
+        self.root.grid_columnconfigure(0, weight=1)
+        # Configure 4 rows with equal height
+        for i in range(4):
+            self.root.grid_rowconfigure(i, weight=1)
+
+        Button(self.root, text = "Hardness", font = font_1, bg="#F08CAE").grid(
+            column=0, row=0, sticky="nsew", padx=10, pady=10
+        )
+        Button(self.root, text = "Sound", font = font_1, bg="#F08CAE").grid(
+            column=0, row=1, sticky="nsew", padx=10, pady=10
+        )
+        Button(self.root, text = "Background Color", font = font_1, bg="#F08CAE").grid(
+            column=0, row=2, sticky="nsew", padx=10, pady=10
+        )
+        Button(self.root, text='Go back', font=font_1, bg="#F08CAE", command=lambda: self.clear_root("Menu")).grid(
+            column=0, row=3, sticky='nsew', padx=10, pady=10
+        )
 
     def widget(self):
         self.root.grid_columnconfigure(0, weight=1)
@@ -27,16 +61,16 @@ class Menu:
         for i in range(4):
             self.root.grid_rowconfigure(i, weight=1)
 
-        Button(self.root, text = "Start", font = font_1, command=MathQuizlet).grid(
+        Button(self.root, text = "Start", font = font_1, bg="#F08CAE", command=lambda: MathQuizlet(self.root)).grid(
             column=0, row=0, sticky="nsew", padx=10, pady=10
         )
-        Button(self.root, text = "Records", font = font_1).grid(
+        Button(self.root, text = "Records", font = font_1, bg="#F08CAE").grid(
             column=0, row=1, sticky="nsew", padx=10, pady=10
         )
-        Button(self.root, text = "Settings", font = font_1).grid(
+        Button(self.root, text = "Settings", font = font_1, bg="#F08CAE", command=lambda: self.clear_root("settings")).grid(
             column=0, row=2, sticky="nsew", padx=10, pady=10
         )
-        Button(self.root, text='Quit', font=font_1, command=quit).grid(
+        Button(self.root, text='Quit', font=font_1, bg="#F08CAE", command=quit).grid(
             column=0, row=3, sticky='nsew', padx=10, pady=10
         )
 
