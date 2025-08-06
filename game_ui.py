@@ -7,7 +7,6 @@ from PIL import Image, ImageTk
 from question import *
 
 from game_core import LivesSystem, GameConfig, DIFFICULTY_LEVELS, DIFFICULTY_COLORS, GAME_MODES
-from game_core import ALGEBRA_TIME, SQUARE_ROOT_TIME, INTEGRATION_TIME, DIFFERENTIATION_TIME, POKEMON_BATTLE_TIME
 from data_manager import DataManager
 from game_logic import GameLogic
 import utils
@@ -15,963 +14,1299 @@ import utils
 class MathGame:
     def __init__(self, root):
         self.root = root
-        self.setup_window()
-        self.initialize_variables()
-        self.load_data()
-        self.setup_styles()
-        self.create_start_menu()
+        self.setupWindow()
+        self.initVars()
+        self.loadData()
+        self.setupStyles()
+        self.createStartMenu()
 
-    def setup_window(self):
+    def setupWindow(self):
         """Initialize the main window"""
-        self.root.title("Math Master")
+        # sets up the main window - basic stuff
+        self.root.title("Pokémath Adventures")
         self.root.geometry("1152x768")  # Scaled down 3:2 ratio (75% of original)
         
-        # Load and resize background image to fit window
+        # Load pre-resized background image for better performance
         try:
-            original_bg = Image.open("assets/pokemon_bg3.png")
-            # Scale down for better performance while maintaining aspect ratio
-            self.bg_image = original_bg.resize((1152, 768), Image.Resampling.LANCZOS)
-            self.bg_photo = ImageTk.PhotoImage(self.bg_image)
+            self.bgImg = Image.open("assets/pokemon_pixle_bg_resized.png")
+            self.bgPhoto = ImageTk.PhotoImage(self.bgImg)
         except:
             print("Background image not found, using default background")
-            self.bg_photo = None
+            self.bgPhoto = None
 
-    def initialize_variables(self):
+    def initVars(self):
         """Initialize game variables"""
+        # initializes game variables - sets up the basic stuff
         self.score = 0
         self.streak = 0
-        self.lives_system = LivesSystem(3)  # Initialize lives system
-        self.time_left = 10
+        self.livesSys = LivesSystem(playerMaxLives=3, enemyMaxLives=5)  # Initialize lives system
+        self.gameConfig = GameConfig()  # Initialize game configuration
+        self.timeLeft = 10
         self.difficulty = "easy"
-        self.current_answer = 0
-        self.timer_id = None
-        self.player_name = ""
-        self.timer_frozen = False
-        self.frozen_time_left = 0
+        self.currentAnswer = 0
+        self.timerId = None
+        self.playerName = ""
+        self.timerFrozen = False
+        self.frozenTimeLeft = 0
 
-    def load_data(self):
+    def loadData(self):
         """Load game data from files"""
-        self.data_manager = DataManager()
-        self.game_logic = GameLogic(self.data_manager, utils)
+        # loads game data from files
+        self.dataMgr = DataManager()
+        self.gameLogic = GameLogic(self.dataMgr, utils)
 
-    def setup_styles(self):
+    def setupStyles(self):
         """Setup fonts and colors for consistent UI"""
-        self.title_font = ("Comic Sans MS", 20, "bold")
-        self.button_font = ("Comic Sans MS", 12)
-        self.label_font = ("Comic Sans MS", 14)
-        self.bg_color = "#F4F4F4"
-        self.button_color = "#4CAF50"
-        self.root.configure(bg=self.bg_color)
+        # sets up fonts and colors for consistent UI
+        # Load Orbitron font
+        self.loadOrbitronFont()
+        
+        self.bgColor = "#F4F4F4"
+        self.btnColor = "#4CAF50"
+        self.root.configure(bg=self.bgColor)
 
-    def draw_background(self):
+    def loadOrbitronFont(self):
+        """Load Orbitron font with fallback options"""
+        # loads orbitron font with fallback options - this part feels weird... double check
+        try:
+            import os
+            import platform
+            
+            # Check if Orbitron font is available - try multiple paths
+            fontPaths = []
+            fontPaths.append("assets/fonts/Orbitron-VariableFont_wght.ttf")
+            fontPaths.append("../assets/fonts/Orbitron-VariableFont_wght.ttf")
+            fontPaths.append("Orbitron-VariableFont_wght.ttf")
+            
+            fontFound = False
+            for fontPath in fontPaths:
+                if os.path.exists(fontPath):
+                    print("✅ Font file found at: " + fontPath)
+                    fontFound = True
+                    break
+            
+            if fontFound:
+                # Try to use Orbitron font
+                self.titleFont = ("Orbitron", 20, "bold")
+                self.buttonFont = ("Orbitron", 12)
+                self.labelFont = ("Orbitron", 14)
+                print("✅ Orbitron font loaded successfully!")
+                return
+            else:
+                print("⚠️ Font file not found in any expected location")
+                
+        except Exception as e:
+            print("❌ Error loading Orbitron font: " + str(e))
+        
+        # Fallback to system fonts
+        if platform.system() == "Windows":
+            self.titleFont = ("Segoe UI", 20, "bold")
+            self.buttonFont = ("Segoe UI", 12)
+            self.labelFont = ("Segoe UI", 14)
+        else:
+            self.titleFont = ("Arial", 20, "bold")
+            self.buttonFont = ("Arial", 12)
+            self.labelFont = ("Arial", 14)
+        
+        print("⚠️ Using fallback fonts")
+
+    def drawBackground(self):
         """Draw background image on window"""
-        if self.bg_photo:
-            self.bg_label = tk.Label(self.root, image=self.bg_photo)
-            self.bg_label.place(x=0, y=0, relwidth=1, relheight=1)
+        # draws background image on window
+        if self.bgPhoto:
+            self.bgLabel = tk.Label(self.root, image=self.bgPhoto)
+            self.bgLabel.place(x=0, y=0, relwidth=1, relheight=1)
         else:
             self.root.configure(bg="#87CEEB")  # Sky blue fallback
 
-    def create_centered_frame(self):
+    def createCenteredFrame(self):
         """Create a centered frame for content"""
-        frame = tk.Frame(self.root, bg="#4EC7D7")
-        frame.place(relx=0.5, rely=0.5, anchor="center")
+        # creates a centered frame for content
+        frame = tk.Frame(self.root, bg="#0C1A31")
+        frame.place(relx=0.5, rely=0.4, anchor="center")
         return frame
 
-    def clear_window(self):
+    def clearWindow(self):
         """Clear all widgets from window"""
-        if self.timer_id:
-            self.root.after_cancel(self.timer_id)
-            self.timer_id = None
+        # clears all widgets from window
+        if self.timerId:
+            self.root.after_cancel(self.timerId)
+            self.timerId = None
         
         for widget in self.root.winfo_children():
             widget.destroy()
 
-    def create_start_menu(self):
+    def createStartMenu(self):
         """Create the main menu"""
-        self.clear_window()
-        self.draw_background()
+        # creates the main menu - pretty straightforward
+        self.clearWindow()
+        self.drawBackground()
         
-        start_frame = self.create_centered_frame()
         
-        tk.Label(start_frame, text="Math Master", font=self.title_font).grid(row=0, column=0, pady=20)
+        startFrame = self.createCenteredFrame()
         
-        buttons = [
-            ("START GAME", "#4CAF50", "white", self.show_username_page),
-            ("View Leaderboard", self.button_color, "white", self.show_leaderboard),
-            ("Exit", "#f44336", "white", self.quit_game)
-        ]
+        titleLabel = tk.Label(startFrame, text="Pokémath Adventures", font=self.titleFont, bg="#0C1A31", fg="white")
+        titleLabel.grid(row=0, column=0, pady=20)
         
-        for i, (text, bg, fg, command) in enumerate(buttons, 1):
-            tk.Button(start_frame, text=text, font=self.button_font, bg=bg,
-                     fg=fg, command=command).grid(row=i, column=0, pady=10)
+        buttons = []
+        buttons.append(("START GAME", "#4CAF50", "white", self.showUsernameAndDifficultyPage))
+        buttons.append(("View Leaderboard", self.btnColor, "white", self.showLeaderboard))
+        buttons.append(("Exit", "#f44336", "white", self.quitGame))
+        
+        for i in range(len(buttons)):
+            button_info = buttons[i]
+            text = button_info[0]
+            bg = button_info[1]
+            fg = button_info[2]
+            command = button_info[3]
+            
+            button = tk.Button(startFrame, text=text, font=self.buttonFont, bg=bg,
+                     fg=fg, command=command, width=15, height=2)
+            button.grid(row=i+1, column=0, pady=10)
 
-    def show_username_page(self):
-        """Show username input page"""
-        self.clear_window()
-        self.root.configure(bg="#4CC7D8")    # Light blue background
-        
-        username_frame = self.create_centered_frame()
-        
-        tk.Label(username_frame, text="Enter Your Name", font=self.title_font).grid(row=0, column=0, pady=20)
-        tk.Label(username_frame, text="Please enter your name to start the game:", 
-                font=self.label_font).grid(row=1, column=0, pady=10)
-        
-        self.username_entry = tk.Entry(username_frame, font=self.label_font, width=20)
-        self.username_entry.grid(row=2, column=0, pady=10)
-        self.username_entry.focus()
-        self.username_entry.bind("<Return>", self.validate_username)
-        
-        buttons = [
-            ("Continue", self.button_color, "white", self.validate_username),
-            ("Back to Menu", "#f44336", "white", self.create_start_menu)
-        ]
-        
-        for i, (text, bg, fg, command) in enumerate(buttons, 3):
-            tk.Button(username_frame, text=text, font=self.button_font, bg=bg,
-                     fg=fg, command=command).grid(row=i, column=0, pady=10)
+    def showUsernameAndDifficultyPage(self):
+        """Show combined username input and difficulty selection page"""
+        # shows combined username input and difficulty selection page - kinda messy but works
+        self.clearWindow()
+        self.root.configure(bg="#0C1A31")  # Shadow Color (Dark Teal) - background
 
-    def validate_username(self, event=None):
-        """Validate username input"""
-        username = self.username_entry.get().strip()
-        is_valid, error_message = utils.validate_username(username)
+        combinedFrame = tk.Frame(self.root)  # Secondary Color (Pale Yellow) - main frame
+        combinedFrame.place(relx=0.5, rely=0.5, anchor="center")
         
-        if not is_valid:
-            messagebox.showwarning("Name Required", error_message)
-            return
-        
-        self.player_name = username
-        self.show_difficulty_selection()
+        # Header with Charizard-inspired styling
+        headerFrame = tk.Frame(combinedFrame, bg="#FF6D28", relief="raised", bd=3)  # Primary Color (Fiery Orange)
+        headerFrame.grid(row=0, column=0, pady=10, padx=10, sticky="ew")
 
-    def show_difficulty_selection(self):
-        """Show difficulty selection page"""
-        self.clear_window()
-        self.root.configure(bg="#4CC7D8")  # Light blue background
+        titleLabel = tk.Label(headerFrame, text="Welcome to Pokémath Adventures!",
+                font=self.titleFont, bg="#FF6D28", fg="#4E342E")
+        titleLabel.grid(row=0, column=0, pady=10)
         
-        difficulty_frame = self.create_centered_frame()
+        # Username input section
+        usernameFrame = tk.Frame(combinedFrame)
+        usernameFrame.grid(row=1, column=0, pady=10, padx=10)
         
-        # Header
-        tk.Label(difficulty_frame, text=f"Welcome, {self.player_name}!", 
-                font=self.title_font).grid(row=0, column=0, pady=10)
+        usernamePromptLabel = tk.Label(usernameFrame, text="Enter Your Name:",
+                font=self.labelFont, fg="#4E342E")
+        usernamePromptLabel.grid(row=0, column=0, pady=10)
         
-        player_coins = self.data_manager.get_player_gold_coins(self.player_name)
-        tk.Label(difficulty_frame, text=f"💰 Gold Coins: {player_coins}", 
-                font=self.label_font, fg="#FFD700").grid(row=1, column=0, pady=5)
+        self.usernameEntry = tk.Entry(usernameFrame, font=self.labelFont, width=20, 
+                                     fg="#4E342E", relief="raised", bd=2)
+        self.usernameEntry.grid(row=1, column=0, pady=10)
+        self.usernameEntry.focus()
+        self.usernameEntry.bind("<Return>", self.confirmUsername)
         
-        tk.Label(difficulty_frame, text="Select Difficulty:", 
-                font=self.label_font).grid(row=2, column=0, pady=10)
+        # Confirm username button
+        self.confirmButton = tk.Button(usernameFrame, text="Confirm Name", font=self.buttonFont,
+                                 bg="#4CAF50", fg="white", relief="raised", bd=4,
+                                 command=self.confirmUsername, width=15, height=2)
+        self.confirmButton.grid(row=2, column=0, pady=10)
         
-        # Difficulty buttons
-        self.difficulty_var = tk.StringVar(value="none")
-        difficulty_buttons_frame = tk.Frame(difficulty_frame)
-        difficulty_buttons_frame.grid(row=3, column=0, pady=10)
+        # Edit name button (initially hidden)
+        self.editButton = tk.Button(usernameFrame, text="Edit Name", font=self.buttonFont,
+                               bg="#FF6D28", fg="white", relief="raised", bd=4,
+                               command=self.editUsername, width=15, height=2)
+        self.editButton.grid(row=2, column=0, pady=10)
+        self.editButton.grid_remove()  # Initially hidden
         
-        for i, difficulty in enumerate(DIFFICULTY_LEVELS):
+        # Username confirmation status
+        self.usernameStatusLabel = tk.Label(usernameFrame, text="", font=self.labelFont,
+                                            fg="#4E342E")
+        self.usernameStatusLabel.grid(row=3, column=0, pady=5)
+        
+        # Check if username was previously confirmed and restore state
+        if hasattr(self, 'playerName') and len(self.playerName) > 0:
+            # Restore the confirmed username state but allow editing
+            self.usernameEntry.insert(0, self.playerName)
+            status_text = "✓ Name confirmed: " + self.playerName
+            self.usernameStatusLabel.config(text=status_text, fg="#4CAF50")
+            self.confirmButton.config(text="✓ Confirmed", bg="#4CAF50", fg="white", state="disabled")
+            self.confirmButton.grid_remove()  # Hide confirm button
+            self.editButton.grid()  # Show edit button
+        else:
+            # Clear any previous state
+            self.playerName = ""
+        
+        # Difficulty selection section (initially disabled)
+        difficultyFrame = tk.Frame(combinedFrame)
+        difficultyFrame.grid(row=2, column=0, pady=10, padx=10)
+
+        difficultyPromptLabel = tk.Label(difficultyFrame, text="Select Difficulty:",
+                font=self.labelFont, fg="#4E342E")
+        difficultyPromptLabel.grid(row=0, column=0, pady=10)
+
+        # Difficulty buttons with Charizard color scheme (initially disabled)
+        self.difficultyVar = tk.StringVar(value="none")
+        difficultyButtonsFrame = tk.Frame(difficultyFrame)
+        difficultyButtonsFrame.grid(row=1, column=0, pady=10)
+        
+        self.difficultyButtons = []
+        for i in range(len(DIFFICULTY_LEVELS)):
+            difficulty = DIFFICULTY_LEVELS[i]
             # Set different text colors based on difficulty
             if difficulty == "easy":
-                text_color = "darkgreen"
+                textColor = "#264653"  # Shadow Color for easy
+                buttonBg = "#FFE156"   # Secondary Color for easy
             elif difficulty == "hard":
-                text_color = "red"
+                textColor = "#4E342E"  # Outline Color for hard
+                buttonBg = "#FF6D28"   # Primary Color for hard
             else:
-                text_color = "white"
+                textColor = "#4E342E"  # Outline Color for medium
+                buttonBg = "#0077B6"   # Accent Color for medium
             
-            tk.Button(difficulty_buttons_frame, text=difficulty.capitalize(), 
-                     font=self.title_font, bg="#FF6700", fg=text_color,
-                     width=15, height=2, 
-                     command=lambda d=difficulty: self.select_difficulty(d)).grid(row=i, column=0, pady=8)
+            btn = tk.Button(difficultyButtonsFrame, text=difficulty.capitalize(), 
+                           font=self.titleFont, bg=buttonBg, fg=textColor,
+                           width=15, height=2, relief="raised", bd=4,
+                           command=lambda d=difficulty: self.selectDifficultyCombined(d))
+            btn.grid(row=0, column=i, padx=5)
+            self.difficultyButtons.append(btn)
         
-        # Action buttons
-        action_buttons_frame = tk.Frame(difficulty_frame)
-        action_buttons_frame.grid(row=4, column=0, pady=10)
+        # Action buttons with Charizard styling
+        actionButtonsFrame = tk.Frame(combinedFrame)
+        actionButtonsFrame.grid(row=3, column=0, pady=10, padx=10)
         
-        action_buttons = [
-            ("Store", self.show_store),
-            ("Back", self.show_username_page)
-        ]
+        actionButtons = []
+        actionButtons.append(("Start Game", "#4CAF50", "#FFE156", self.validateUsernameAndDifficulty))  # Green for start
+        actionButtons.append(("Back", "#264653", "#FFE156", self.createStartMenu))  # Shadow Color
+        actionButtons.append(("Return to Start", "#f44336", "#FFE156", self.createStartMenu))  # Red color
         
-        for i, (text, command) in enumerate(action_buttons):
-            tk.Button(action_buttons_frame, text=text, font=self.button_font,
-                     width=10, command=command).grid(row=0, column=i, padx=5)
+        for i in range(len(actionButtons)):
+            button_info = actionButtons[i]
+            text = button_info[0]
+            bg = button_info[1]
+            fg = button_info[2]
+            command = button_info[3]
+            
+            # All buttons have the same size and border width
+            button = tk.Button(actionButtonsFrame, text=text, font=self.buttonFont,
+                     width=15, height=2, bg=bg, fg=fg, relief="raised", bd=4,
+                     command=command)
+            button.grid(row=0, column=i, padx=5)
 
-    def select_difficulty(self, difficulty_level):
+
+    def confirmUsername(self, event=None):
+        """Confirm username and enable difficulty selection"""
+        # confirms username and enables difficulty selection
+        username = self.usernameEntry.get().strip()
+        is_valid, error_message = utils.validateUsername(username)
+        
+        if not is_valid:
+            self.usernameStatusLabel.config(text=error_message, fg="#f44336")  # Red for error
+            return
+        
+        # Username is valid, store it
+        self.playerName = username
+        status_text = "✓ Name confirmed: " + username
+        self.usernameStatusLabel.config(text=status_text, fg="#4CAF50")  # Green for success
+        
+        # Change confirm button to show it's been confirmed
+        for widget in self.root.winfo_children():
+            if hasattr(widget, 'winfo_children'):
+                for child in widget.winfo_children():
+                    if hasattr(child, 'winfo_children'):
+                        for grandchild in child.winfo_children():
+                            if isinstance(grandchild, tk.Frame) and grandchild.cget('bg') == '#FFE156':
+                                for great_grandchild in grandchild.winfo_children():
+                                    if isinstance(great_grandchild, tk.Frame):
+                                        for button in great_grandchild.winfo_children():
+                                            if isinstance(button, tk.Button) and button.cget('text') == "Confirm Name":
+                                                button.config(text="✓ Confirmed", bg="#4CAF50", fg="white", state="disabled")
+        
+        # Also update the entry field to show the confirmed name
+        self.usernameEntry.delete(0, tk.END)
+        self.usernameEntry.insert(0, username)
+        
+        # Switch to edit mode
+        self.confirmButton.grid_remove()  # Hide confirm button
+        self.editButton.grid()  # Show edit button
+
+    def editUsername(self):
+        """Allow editing of username"""
+        # allows editing of username
+        # Clear the current username state
+        self.playerName = ""
+        
+        # Enable the entry field for editing
+        self.usernameEntry.config(state="normal")
+        self.usernameEntry.focus()
+        
+        # Clear the status label
+        self.usernameStatusLabel.config(text="", fg="#4E342E")
+        
+        # Switch back to confirm mode
+        self.confirmButton.config(text="Confirm Name", bg="#4CAF50", fg="white", state="normal")
+        self.confirmButton.grid()  # Show confirm button
+        self.editButton.grid_remove()  # Hide edit button
+
+    def selectDifficultyCombined(self, difficultyLevel):
+        """Select difficulty in the combined page"""
+        # selects difficulty in the combined page
+        # Check if username has been confirmed first
+        if not hasattr(self, 'playerName') or len(self.playerName) == 0:
+            messagebox.showwarning("Name Not Confirmed", 
+                "Please enter and confirm your name before selecting difficulty!\n\n"
+                "Step 1: Enter your name\n"
+                "Step 2: Click 'Confirm Name' button\n"
+                "Step 3: Select difficulty level")
+            return
+        
+        self.difficulty = difficultyLevel
+        self.difficultyVar.set(difficultyLevel)
+        
+        # Visual feedback - highlight selected difficulty
+        for btn in self.difficultyButtons:
+            if btn.cget('text').lower() == difficultyLevel:
+                btn.config(bg="#E0E0E0", fg="black")  # Highlight selected
+            else:
+                # Reset other buttons to their original colors
+                if btn.cget('text').lower() == "easy":
+                    btn.config(bg="#FF6D28", fg="white")
+                elif btn.cget('text').lower() == "hard":
+                    btn.config(bg="#FF6D28", fg="#4E342E")
+                else:
+                    btn.config(bg="#0077B6", fg="#4E342E")
+
+    def validateUsernameAndDifficulty(self, event=None):
+        """Validate both username and difficulty selection"""
+        # validates both username and difficulty selection
+        # Check if username has been confirmed
+        if not hasattr(self, 'playerName') or len(self.playerName) == 0:
+            messagebox.showwarning("Name Not Confirmed", "Please enter and confirm your name first!")
+            return
+        
+        # Check if difficulty has been selected
+        if len(self.difficulty) == 0 or self.difficulty not in DIFFICULTY_LEVELS:
+            messagebox.showwarning("Difficulty Required", "Please select a difficulty level!")
+            return
+        
+        # Both username and difficulty are valid, proceed to game
+        self.showDifficultyTests()
+
+    def showDifficultySelection(self):
+        """Show difficulty selection page"""
+        # shows difficulty selection page - maybe not needed anymore
+        self.clearWindow()
+        self.root.configure(bg="#264653")  # Shadow Color (Dark Teal) - background
+
+        difficultyFrame = tk.Frame(self.root)  # Secondary Color (Pale Yellow) - main frame
+        difficultyFrame.place(relx=0.5, rely=0.5, anchor="center")
+        
+        # Header with Charizard-inspired styling
+        headerFrame = tk.Frame(difficultyFrame, bg="#FF6D28", relief="raised", bd=3)  # Primary Color (Fiery Orange)
+        headerFrame.grid(row=0, column=0, pady=10, padx=10, sticky="ew")
+
+        welcome_text = "Welcome, " + self.playerName + "!"
+        welcomeLabel = tk.Label(headerFrame, text=welcome_text,
+                font=self.titleFont, bg="#FF6D28", fg="#4E342E")
+        welcomeLabel.grid(row=0, column=0, pady=10)
+        
+
+        
+        # Difficulty selection section
+        selectionFrame = tk.Frame(difficultyFrame, bg="#FFE156")
+        selectionFrame.grid(row=1, column=0, pady=10, padx=10)
+        
+        difficultyPromptLabel = tk.Label(selectionFrame, text="Select Difficulty:",
+                font=self.labelFont, bg="#FFE156", fg="#4E342E")
+        difficultyPromptLabel.grid(row=0, column=0, pady=10)
+
+        # Difficulty buttons with Charizard color scheme
+        self.difficultyVar = tk.StringVar(value="none")
+        difficultyButtonsFrame = tk.Frame(selectionFrame, bg="#FFE156")
+        difficultyButtonsFrame.grid(row=1, column=0, pady=10)
+        
+        for i in range(len(DIFFICULTY_LEVELS)):
+            difficulty = DIFFICULTY_LEVELS[i]
+            # Set different text colors based on difficulty
+            if difficulty == "easy":
+                textColor = "#264653"  # Shadow Color for easy
+                buttonBg = "#FFE156"   # Secondary Color for easy
+            elif difficulty == "hard":
+                textColor = "#4E342E"  # Outline Color for hard
+                buttonBg = "#FF6D28"   # Primary Color for hard
+            else:
+                textColor = "#4E342E"  # Outline Color for medium
+                buttonBg = "#0077B6"   # Accent Color for medium
+            
+            button = tk.Button(difficultyButtonsFrame, text=difficulty.capitalize(), 
+                     font=self.titleFont, bg=buttonBg, fg=textColor,
+                     width=15, height=2, relief="raised", bd=2,
+                     command=lambda d=difficulty: self.selectDifficulty(d))
+            button.grid(row=0, column=i, padx=5)
+        
+        # Action buttons with Charizard styling
+        actionButtonsFrame = tk.Frame(difficultyFrame)
+        actionButtonsFrame.grid(row=2, column=0, pady=10, padx=10)
+        
+        actionButtons = []
+        actionButtons.append(("Back", "#264653", "#FFE156", self.showUsernameAndDifficultyPage))  # Shadow Color
+        actionButtons.append(("Return to Start", "#f44336", "#FFE156", self.createStartMenu))  # Red color
+        
+        for i in range(len(actionButtons)):
+            button_info = actionButtons[i]
+            text = button_info[0]
+            bg = button_info[1]
+            fg = button_info[2]
+            command = button_info[3]
+            
+            # Skip size standardization for "Back" and "Return to Start" buttons
+            if text in ["Back", "Return to Start"]:
+                button = tk.Button(actionButtonsFrame, text=text, font=self.buttonFont,
+                         width=12, bg=bg, fg=fg, relief="raised", bd=2,
+                         command=command)
+                button.grid(row=0, column=i, padx=5)
+            else:
+                button = tk.Button(actionButtonsFrame, text=text, font=self.buttonFont,
+                         width=15, height=2, bg=bg, fg=fg, relief="raised", bd=2,
+                         command=command)
+                button.grid(row=0, column=i, padx=5)
+
+    def selectDifficulty(self, difficultyLevel):
         """Select difficulty and go to test selection"""
-        self.difficulty = difficulty_level
-        self.difficulty_var.set(difficulty_level)
-        self.show_difficulty_tests()
+        # selects difficulty and goes to test selection
+        self.difficulty = difficultyLevel
+        self.difficultyVar.set(difficultyLevel)
+        self.showDifficultyTests()
 
-    def show_difficulty_tests(self):
+    def showDifficultyTests(self):
         """Validate difficulty and show test selection"""
-        if not self.difficulty or self.difficulty not in DIFFICULTY_LEVELS:
+        # validates difficulty and shows test selection
+        if len(self.difficulty) == 0 or self.difficulty not in DIFFICULTY_LEVELS:
             messagebox.showwarning("Difficulty Required", "Please select a difficulty level first!")
             return
         
-        self.show_test_window()
+        self.showTestWindow()
 
-    def show_test_window(self):
+    def showTestWindow(self):
         """Show test selection window"""
-        self.clear_window()
-        self.root.configure(bg="#E3F2FD")  # Light blue background
+        # shows test selection window - this is where the fun begins
+        self.clearWindow()
+        self.root.configure(bg="#264653")  # Shadow Color (Dark Teal) - background
         
-        test_frame = self.create_centered_frame()
+        testFrame = tk.Frame(self.root)  # Secondary Color (Pale Yellow) - main frame
+        testFrame.place(relx=0.5, rely=0.5, anchor="center")
         
-        difficulty_display = self.difficulty.capitalize()
-        tk.Label(test_frame, text=f"{difficulty_display} Difficulty Tests", 
-                font=self.title_font).grid(row=0, column=0, pady=10)
-        tk.Label(test_frame, text=f"Player: {self.player_name}", 
-                font=self.label_font).grid(row=1, column=0, pady=5)
+        # Header with Charizard-inspired styling
+        headerFrame = tk.Frame(testFrame, bg="#FF6D28", relief="raised", bd=3)  # Primary Color (Fiery Orange)
+        headerFrame.grid(row=0, column=0, pady=10, padx=10, sticky="ew")
         
-        # Test buttons
-        test_buttons = [
-            ("Algebra", self.button_color, "white", self.start_game),
-            ("Square Root Challenge", self.button_color, "white", self.start_square_root_game),
-            ("Integration", self.button_color, "white", self.start_integration_game),
-            ("Differentiation", self.button_color, "white", self.start_differentiation_game),
-            ("Pokémon Battle", "#FF6B6B", "white", self.start_pokemon_battle_game),
-            ("Back", "#f44336", "white", self.show_difficulty_selection)
-        ]
+        difficultyDisplay = self.difficulty.capitalize()
+        difficulty_text = difficultyDisplay + " Difficulty Tests"
+        difficultyLabel = tk.Label(headerFrame, text=difficulty_text, 
+                font=self.titleFont, bg="#FF6D28", fg="#4E342E")
+        difficultyLabel.grid(row=0, column=0, pady=10)
         
-        for i, (text, bg, fg, command) in enumerate(test_buttons, 2):
-            tk.Button(test_frame, text=text, font=self.button_font, bg=bg,
-                     fg=fg, command=command).grid(row=i, column=0, pady=10)
+        player_text = "Player: " + self.playerName
+        playerLabel = tk.Label(headerFrame, text=player_text, 
+                font=self.labelFont, bg="#FF6D28", fg="#4E342E")
+        playerLabel.grid(row=1, column=0, pady=5)
+        
+        # Test selection section
+        selectionFrame = tk.Frame(testFrame)
+        selectionFrame.grid(row=1, column=0, pady=10, padx=10)
+        
+        testPromptLabel = tk.Label(selectionFrame, text="Select Test Type:", 
+                font=self.labelFont, fg="#4E342E")
+        testPromptLabel.grid(row=0, column=0, pady=10)
+        
+        # Test buttons with Charizard color scheme
+        testButtonsFrame = tk.Frame(selectionFrame)
+        testButtonsFrame.grid(row=1, column=0, pady=10)
+        
+        # Add extra space to match combined_frame size
+        extraSpaceFrame = tk.Frame(testFrame)
+        extraSpaceFrame.grid(row=2, column=0, pady=20)
+        
+        # Action buttons section to match combined_frame structure
+        actionButtonsFrame = tk.Frame(testFrame)
+        actionButtonsFrame.grid(row=3, column=0, pady=10, padx=10)
+        
+        # Test buttons (only the game type buttons)
+        testButtons = []
+        testButtons.append(("Arithmetics", "#0077B6", "#FFE156", self.startGame))  # Accent Color
+        testButtons.append(("Square Root Challenge", "#0077B6", "#FFE156", self.startSquareRootGame))  # Accent Color
+        testButtons.append(("Integration", "#0077B6", "#FFE156", self.startIntegrationGame))  # Accent Color
+        testButtons.append(("Differentiation", "#0077B6", "#FFE156", self.startDifferentiationGame))  # Accent Color
+        
+        # Arrange test buttons in a 2x2 grid with larger size and more separation
+        for i in range(len(testButtons)):
+            button_info = testButtons[i]
+            text = button_info[0]
+            bg = button_info[1]
+            fg = button_info[2]
+            command = button_info[3]
+            
+            row = i // 2  # 2 buttons per row
+            col = i % 2   # Column within the row
+            button = tk.Button(testButtonsFrame, text=text, font=self.buttonFont, bg=bg,
+                     fg=fg, command=command, width=20, height=3, relief="raised", bd=3)
+            button.grid(row=row, column=col, padx=15, pady=15)
+        
+        # Action buttons (Back and Return to Start) - matching combined_frame structure
+        actionButtons = []
+        actionButtons.append(("Back", "#264653", "#FFE156", self.showUsernameAndDifficultyPage))  # Shadow Color
+        actionButtons.append(("Return to Start", "#f44336", "#FFE156", self.createStartMenu))  # Red color
+        
+        for i in range(len(actionButtons)):
+            button_info = actionButtons[i]
+            text = button_info[0]
+            bg = button_info[1]
+            fg = button_info[2]
+            command = button_info[3]
+            
+            button = tk.Button(actionButtonsFrame, text=text, font=self.buttonFont,
+                     width=15, height=2, bg=bg, fg=fg, relief="raised", bd=2,
+                     command=command)
+            button.grid(row=0, column=i, padx=5)
 
-    def quit_game(self):
+    def quitGame(self):
         """Quit the game directly"""
+        # quits the game directly
         result = messagebox.askyesno("Exit Game", "Are you sure you want to exit?")
         if result:
             self.root.quit()
 
-    def reset_game_state(self):
+    def resetGameState(self):
         """Reset game state for new game"""
+        # resets game state for new game
         self.score = 0
         self.streak = 0
-        self.lives_system.reset_all_lives()  # Reset both player and enemy lives
+        self.livesSys.resetAllLives()  # Reset both player and enemy lives
 
-    def start_game(self):
+    def startGame(self):
         """Start algebra game with Pokémon battle GUI"""
-        self.reset_game_state()
-        self.game_mode = "algebra"
-        self.setup_pokemon_battle_ui()
-        self.generate_question()
-        self.start_timer()
+        # starts algebra game with pokemon battle GUI
+        self.resetGameState()
+        self.gameMode = "algebra"
+        self.setupPokemonBattleUi()
+        self.generateQuestion()
+        self.startTimer()
 
-    def start_square_root_game(self):
+    def startSquareRootGame(self):
         """Start square root game with Pokémon battle GUI"""
-        self.reset_game_state()
-        self.time_left = SQUARE_ROOT_TIME
-        self.game_mode = "square_root"
-        self.setup_pokemon_battle_ui()
-        self.generate_square_root_question()
-        self.start_timer()
+        # starts square root game with pokemon battle GUI
+        self.resetGameState()
+        self.gameMode = "square_root"
+        self.setupPokemonBattleUi()
+        self.generateSquareRootQuestion()
+        self.startTimer()
 
-    def start_integration_game(self):
+    def startIntegrationGame(self):
         """Start integration game with Pokémon battle GUI"""
-        self.reset_game_state()
-        self.game_mode = "integration"
-        self.setup_pokemon_battle_ui()
-        self.generate_integration_question()
-        self.start_timer()
+        # starts integration game with pokemon battle GUI
+        self.resetGameState()
+        self.gameMode = "integration"
+        self.setupPokemonBattleUi()
+        self.generateIntegrationQuestion()
+        self.startTimer()
 
-    def start_differentiation_game(self):
+    def startDifferentiationGame(self):
         """Start differentiation game with Pokémon battle GUI"""
-        self.reset_game_state()
-        self.game_mode = "differentiation"
-        self.setup_pokemon_battle_ui()
-        self.generate_differentiation_question()
-        self.start_timer()
+        # starts differentiation game with pokemon battle GUI
+        self.resetGameState()
+        self.gameMode = "differentiation"
+        self.setupPokemonBattleUi()
+        self.generateDifferentiationQuestion()
+        self.startTimer()
 
-    def start_pokemon_battle_game(self):
-        """Start Pokémon battle game with actual battle background"""
-        self.reset_game_state()
-        self.game_mode = "pokemon_battle"
-        self.setup_pokemon_battle_ui()
-        self.generate_pokemon_question()
-        self.start_timer()
 
-    def generate_question(self):
+
+    def generateQuestion(self):
         """Generate algebra question based on difficulty"""
-        question_text, self.current_answer = self.game_logic.generate_algebra_question(self.difficulty)
-        self.question_label.config(text=question_text)
-        self.battle_message.config(text="⚡ Pikachu is ready to battle! Answer correctly to attack!")
-        self.answer_entry.delete(0, tk.END)
+        # generates algebra question based on difficulty
+        questionText, self.currentAnswer = self.gameLogic.generateAlgebraQuestion(self.difficulty)
+        self.questionLabel.config(text=questionText)
+        self.battleMessage.config(text="⚡ Pikachu is ready to battle! Answer correctly to attack!")
+        self.answerEntry.delete(0, tk.END)
 
-    def generate_square_root_question(self):
+    def generateSquareRootQuestion(self):
         """Generate square root question"""
-        question_text, self.current_answer = self.game_logic.generate_square_root_question(self.difficulty)
-        self.question_label.config(text=question_text)
-        self.battle_message.config(text="⚡ Pikachu is ready to battle! Answer correctly to attack!")
-        self.answer_entry.delete(0, tk.END)
+        # generates square root question
+        questionText, self.currentAnswer = self.gameLogic.generateSquareRootQuestion(self.difficulty)
+        self.questionLabel.config(text=questionText)
+        self.battleMessage.config(text="⚡ Pikachu is ready to battle! Answer correctly to attack!")
+        self.answerEntry.delete(0, tk.END)
 
-    def generate_integration_question(self):
+    def generateIntegrationQuestion(self):
         """Generate integration question based on difficulty"""
-        self.current_question = self.game_logic.generate_integration_question(self.difficulty)
-        self.question_label.config(text=self.current_question["question"])
-        self.battle_message.config(text="⚡ Pikachu is ready to battle! Choose the correct answer to attack!")
+        # generates integration question based on difficulty
+        self.currentQuestion = self.gameLogic.generateIntegrationQuestion(self.difficulty)
+        self.questionLabel.config(text=self.currentQuestion["question"])
+        self.battleMessage.config(text="⚡ Pikachu is ready to battle! Choose the correct answer to attack!")
         
         # Clear previous options
-        for widget in self.options_frame.winfo_children():
+        for widget in self.optionsFrame.winfo_children():
             widget.destroy()
         
         # Create option buttons
-        for option, text in self.current_question["options"].items():
-            btn = tk.Button(self.options_frame, text=f"{option}. {text}", 
-                           font=("Comic Sans MS", 10), bg="#4CAF50", fg="white",
-                           command=lambda opt=option: self.check_integration_answer(opt),
-                           width=50, height=1)
+        for option, text in self.currentQuestion["options"].items():
+            button_text = option + ". " + text
+            btn = tk.Button(self.optionsFrame, text=button_text, 
+                           font=("Comic Sans MS", 10), bg="#0077B6", fg="#FFE156",  # Accent Color background, Secondary Color text
+                           command=lambda opt=option: self.checkIntegrationAnswer(opt),
+                           width=50, height=2, relief="raised", bd=2)
             btn.pack(pady=3)
 
-    def generate_differentiation_question(self):
+    def generateDifferentiationQuestion(self):
         """Generate differentiation question based on difficulty"""
-        self.current_question = self.game_logic.generate_differentiation_question(self.difficulty)
-        self.question_label.config(text=self.current_question["question"])
-        self.battle_message.config(text="⚡ Pikachu is ready to battle! Choose the correct answer to attack!")
+        # generates differentiation question based on difficulty
+        self.currentQuestion = self.gameLogic.generateDifferentiationQuestion(self.difficulty)
+        self.questionLabel.config(text=self.currentQuestion["question"])
+        self.battleMessage.config(text="⚡ Pikachu is ready to battle! Choose the correct answer to attack!")
         
         # Clear previous options
-        for widget in self.options_frame.winfo_children():
+        for widget in self.optionsFrame.winfo_children():
             widget.destroy()
         
         # Create option buttons
-        for option, text in self.current_question["options"].items():
-            btn = tk.Button(self.options_frame, text=f"{option}. {text}", 
-                           font=("Comic Sans MS", 10), bg="#4CAF50", fg="white",
-                           command=lambda opt=option: self.check_differentiation_answer(opt),
-                           width=50, height=1)
+        for option, text in self.currentQuestion["options"].items():
+            button_text = option + ". " + text
+            btn = tk.Button(self.optionsFrame, text=button_text, 
+                           font=("Comic Sans MS", 10), bg="#0077B6", fg="#FFE156",  # Accent Color background, Secondary Color text
+                           command=lambda opt=option: self.checkDifferentiationAnswer(opt),
+                           width=50, height=2, relief="raised", bd=2)
             btn.pack(pady=3)
 
-    def generate_pokemon_question(self):
-        """Generate Pokémon-themed math question"""
-        question_text, self.current_answer = self.game_logic.generate_pokemon_question(self.difficulty)
-        self.question_label.config(text=question_text)
-        self.battle_message.config(text="⚡ Pikachu is ready to battle! Answer correctly to attack!")
-        self.answer_entry.delete(0, tk.END)
 
-    def check_algebra_answer(self, event=None):
+
+    def checkAlgebraAnswer(self, event=None):
         """Check algebra answer with Pokémon battle effects"""
+        # checks algebra answer with pokemon battle effects
         try:
-            user_answer = float(self.answer_entry.get())
-            is_correct, message = self.game_logic.check_algebra_answer(user_answer, self.current_answer)
+            userAnswer = float(self.answerEntry.get())
+            is_correct, message = self.gameLogic.checkAlgebraAnswer(userAnswer, self.currentAnswer)
             
             if is_correct:
                 # Correct answer - successful attack
-                battle_message = self.game_logic.get_battle_messages(True)
-                self.battle_message.config(text=battle_message, fg="#006400")  # Dark green for success
+                battleMessage = self.gameLogic.getBattleMessages(True)
+                self.battleMessage.config(text=battleMessage, fg="#006400")  # Dark green for success
                 
-                # Flash the enemy Pokémon red when hit
-                self.flash_enemy_red()
+                # Flash the enemy pokemon red when hit
+                self.flashEnemyRed()
                 
-                self.handle_correct_answer(2, "Correct!")
+                self.handleCorrectAnswer("Correct!")
             else:
                 # Wrong answer - attack misses and player gets hit
-                battle_message = self.game_logic.get_battle_messages(False)
-                self.battle_message.config(text=battle_message, fg="#8B0000")  # Dark red for failure
+                battleMessage = self.gameLogic.getBattleMessages(False)
+                self.battleMessage.config(text=battleMessage, fg="#8B0000")  # Dark red for failure
                 
-                # Flash the player's Pokémon red when hit
-                self.flash_pokemon_red()
+                # Flash the player's pokemon red when hit
+                self.flashPokemonRed()
                 
-                self.handle_wrong_answer("Wrong!", f"Correct answer: {self.current_answer}")
+                self.handleWrongAnswer("Wrong!", "Correct answer: " + str(self.currentAnswer))
         except ValueError:
-            self.show_message_with_timer_freeze("Error", "Please enter a valid number!", "error")
-            self.answer_entry.delete(0, tk.END)
+            self.showMessageWithTimerFreeze("Error", "Please enter a valid number!", "error")
+            self.answerEntry.delete(0, tk.END)
 
-    def check_square_root_answer(self, event=None):
+    def checkSquareRootAnswer(self, event=None):
         """Check square root answer"""
+        # checks square root answer - this one's tricky with partial credit
         try:
-            user_answer = float(self.answer_entry.get())
-            result = self.game_logic.check_square_root_answer(user_answer, self.current_answer)
+            userAnswer = float(self.answerEntry.get())
+            result = self.gameLogic.checkSquareRootAnswer(userAnswer, self.currentAnswer)
             
             if len(result) == 4:  # Correct format
-                is_correct, message, points, deviation = result
+                is_correct = result[0]
+                message = result[1]
+                points = result[2]
+                deviation = result[3]
+                
                 if is_correct:
                     # Correct answer - successful attack
-                    battle_message = self.game_logic.get_battle_messages(True)
-                    self.battle_message.config(text=battle_message, fg="#006400")  # Dark green for success
+                    battleMessage = self.gameLogic.getBattleMessages(True)
+                    self.battleMessage.config(text=battleMessage, fg="#006400")  # Dark green for success
                     
-                    # Flash the enemy Pokémon red when hit
-                    self.flash_enemy_red()
+                    # Flash the enemy pokemon red when hit
+                    self.flashEnemyRed()
                     
-                    self.handle_correct_answer(max(1, points // 5), message, deviation, points)
+                    self.handleCorrectAnswer(message, deviation, points)
                 else:
                     # Wrong answer - attack misses and player gets hit
-                    battle_message = self.game_logic.get_battle_messages(False)
-                    self.battle_message.config(text=battle_message, fg="#8B0000")  # Dark red for failure
+                    battleMessage = self.gameLogic.getBattleMessages(False)
+                    self.battleMessage.config(text=battleMessage, fg="#8B0000")  # Dark red for failure
                     
-                    # Flash the player's Pokémon red when hit
-                    self.flash_pokemon_red()
+                    # Flash the player's pokemon red when hit
+                    self.flashPokemonRed()
                     
-                    self.handle_wrong_answer(message, f"Deviation: {deviation:.3f}")
+                    self.handleWrongAnswer(message, "Deviation: " + str(round(deviation, 3)))
             else:
-                self.handle_wrong_answer("Invalid input!", "")
+                self.handleWrongAnswer("Invalid input!", "")
                     
         except ValueError:
-            self.show_message_with_timer_freeze("Error", "Please enter a valid number!", "error")
-            self.answer_entry.delete(0, tk.END)
+            self.showMessageWithTimerFreeze("Error", "Please enter a valid number!", "error")
+            self.answerEntry.delete(0, tk.END)
 
-    def check_integration_answer(self, selected_option):
+    def checkIntegrationAnswer(self, selectedOption):
         """Check integration answer with difficulty-based scoring and Pokémon battle effects"""
-        is_correct, message = self.game_logic.check_integration_answer(selected_option, self.current_question)
+        # checks integration answer with difficulty-based scoring and pokemon battle effects
+        is_correct, message = self.gameLogic.checkIntegrationAnswer(selectedOption, self.currentQuestion)
         
         if is_correct:
             # Different scoring based on difficulty
             if self.difficulty == "easy":
-                coins_earned = 3
                 message = "Correct! Great job with basic integration!"
             elif self.difficulty == "medium":
-                coins_earned = 5
                 message = "Excellent! Medium difficulty integration mastered!"
             elif self.difficulty == "hard":
-                coins_earned = 8
                 message = "Outstanding! Advanced integration conquered!"
             else:
-                coins_earned = 3
                 message = "Correct! Great job with integration!"
             
             # Correct answer - successful attack
-            battle_message = self.game_logic.get_battle_messages(True)
-            self.battle_message.config(text=battle_message, fg="#006400")  # Dark green for success
+            battleMessage = self.gameLogic.getBattleMessages(True)
+            self.battleMessage.config(text=battleMessage, fg="#006400")  # Dark green for success
             
-            # Flash the enemy Pokémon red when hit
-            self.flash_enemy_red()
+            # Flash the enemy pokemon red when hit
+            self.flashEnemyRed()
             
-            self.handle_correct_answer(coins_earned, message)
+            self.handleCorrectAnswer(message)
         else:
             # Wrong answer - attack misses and player gets hit
-            battle_message = self.game_logic.get_battle_messages(False)
-            self.battle_message.config(text=battle_message, fg="#8B0000")  # Dark red for failure
+            battleMessage = self.gameLogic.getBattleMessages(False)
+            self.battleMessage.config(text=battleMessage, fg="#8B0000")  # Dark red for failure
             
-            # Flash the player's Pokémon red when hit
-            self.flash_pokemon_red()
+            # Flash the player's pokemon red when hit
+            self.flashPokemonRed()
             
-            self.handle_wrong_answer("Incorrect!", f"Correct answer: {self.current_question['answer']}")
+            self.handleWrongAnswer("Incorrect!", "Correct answer: " + self.currentQuestion['answer'])
 
-    def check_differentiation_answer(self, selected_option):
+    def checkDifferentiationAnswer(self, selectedOption):
         """Check differentiation answer with difficulty-based scoring and Pokémon battle effects"""
-        is_correct, message = self.game_logic.check_differentiation_answer(selected_option, self.current_question)
+        # checks differentiation answer with difficulty-based scoring and pokemon battle effects
+        is_correct, message = self.gameLogic.checkDifferentiationAnswer(selectedOption, self.currentQuestion)
         
         if is_correct:
             # Different scoring based on difficulty
             if self.difficulty == "easy":
-                coins_earned = 3
                 message = "Correct! Great job with basic differentiation!"
             elif self.difficulty == "medium":
-                coins_earned = 5
                 message = "Excellent! Medium difficulty differentiation mastered!"
             elif self.difficulty == "hard":
-                coins_earned = 8
                 message = "Outstanding! Advanced differentiation conquered!"
             else:
-                coins_earned = 3
                 message = "Correct! Great job with differentiation!"
             
             # Correct answer - successful attack
-            battle_message = self.game_logic.get_battle_messages(True)
-            self.battle_message.config(text=battle_message, fg="#006400")  # Dark green for success
+            battleMessage = self.gameLogic.getBattleMessages(True)
+            self.battleMessage.config(text=battleMessage, fg="#006400")  # Dark green for success
             
-            # Flash the enemy Pokémon red when hit
-            self.flash_enemy_red()
+            # Flash the enemy pokemon red when hit
+            self.flashEnemyRed()
             
-            self.handle_correct_answer(coins_earned, message)
+            self.handleCorrectAnswer(message)
         else:
             # Wrong answer - attack misses and player gets hit
-            battle_message = self.game_logic.get_battle_messages(False)
-            self.battle_message.config(text=battle_message, fg="#8B0000")  # Dark red for failure
+            battleMessage = self.gameLogic.getBattleMessages(False)
+            self.battleMessage.config(text=battleMessage, fg="#8B0000")  # Dark red for failure
             
-            # Flash the player's Pokémon red when hit
-            self.flash_pokemon_red()
+            # Flash the player's pokemon red when hit
+            self.flashPokemonRed()
             
-            self.handle_wrong_answer("Incorrect!", f"Correct answer: {self.current_question['answer']}")
+            self.handleWrongAnswer("Incorrect!", "Correct answer: " + self.currentQuestion['answer'])
 
-    def check_pokemon_answer(self, event=None):
-        """Check Pokémon battle answer"""
-        try:
-            user_answer = float(self.answer_entry.get())
-            is_correct, message = self.game_logic.check_pokemon_answer(user_answer, self.current_answer)
-            
-            if is_correct:
-                # Correct answer - successful attack on enemy
-                battle_message = self.game_logic.get_battle_messages(True)
-                self.battle_message.config(text=battle_message, fg="#006400")  # Dark green for success
-                
-                # Flash the enemy Pokémon red when hit
-                self.flash_enemy_red()
-                
-                # Use centralized handle_correct_answer function
-                self.handle_correct_answer(3, "Correct!")
-            else:
-                # Wrong answer - attack misses and player gets hit
-                battle_message = self.game_logic.get_battle_messages(False)
-                self.battle_message.config(text=battle_message, fg="#8B0000")  # Dark red for failure
-                
-                # Flash the player's Pokémon red when hit
-                self.flash_pokemon_red()
-                
-                self.handle_wrong_answer("Attack missed!", f"Correct answer: {self.current_answer}")
-        except ValueError:
-            self.show_message_with_timer_freeze("Error", "Please enter a valid number!", "error")
-            self.answer_entry.delete(0, tk.END)
 
-    def handle_correct_answer(self, coins_earned, message, deviation=None, points=None):
+
+    def handleCorrectAnswer(self, message, deviation=None, points=None):
         """Handle correct answer logic"""
-        self.score += points if points else 10
-        self.streak += 1
-        utils.animate_score_label(self.score_label, self.root)
-        self.data_manager.add_gold_coins(self.player_name, coins_earned)
+        # handles correct answer logic - this is where the fun happens
+        if points is not None:
+            self.score = self.score + points
+        else:
+            self.score = self.score + 10
+        self.streak = self.streak + 1
+        utils.animateScoreLabel(self.scoreLabel, self.root)
         
         # Handle enemy lives reduction for ALL game modes
         # Reduce enemy lives and update display
-        self.lives_system.reduce_enemy_lives(1)
+        self.livesSys.reduceEnemyLives(1)
         
         # Force update the enemy lives display
-        self.enemy_lives_label.config(text=self.lives_system.get_enemy_life_display())
+        self.enemyLivesLabel.config(text=self.livesSys.getEnemyLifeDisplay())
         
         # Check if enemy is defeated
-        if self.lives_system.is_enemy_defeated():
-            self.handle_enemy_defeated()
+        if self.livesSys.isEnemyDefeated():
+            self.handleEnemyDefeated()
             return  # Exit early to avoid further processing
         
         if self.streak % 3 == 0:
-            bonus_coins = 3 if self.game_mode == "square_root" else 5
-            self.score += 10 if self.game_mode == "square_root" else 20
-            self.data_manager.add_gold_coins(self.player_name, bonus_coins)
-            self.show_message_with_timer_freeze("Combo!", 
-                f"🔥 Combo x{self.streak}! +{self.score} Bonus Points! +{bonus_coins} Gold Coins!")
+            if self.gameMode == "square_root":
+                self.score = self.score + 10
+            else:
+                self.score = self.score + 20
+            bonus_message = "🔥 Combo x" + str(self.streak) + "! +" + str(self.score) + " Bonus Points!"
+            self.showMessageWithTimerFreeze("Combo!", bonus_message)
         
-        utils.play_sound("correct")
+        utils.playSound("correct")
         
         if deviation is not None:
-            self.show_message_with_timer_freeze("Result", 
-                f"{message}\nDeviation: {deviation:.3f}\nPoints earned: {points}\nGold Coins earned: {coins_earned}")
+            deviation_text = "Deviation: " + str(round(deviation, 3))
+            points_text = "Points earned: " + str(points)
+            full_message = message + "\n" + deviation_text + "\n" + points_text
+            self.showMessageWithTimerFreeze("Result", full_message)
         else:
-            self.show_message_with_timer_freeze("Result", f"{message} +{coins_earned} Gold Coins earned!")
+            self.showMessageWithTimerFreeze("Result", message)
         
-        self.update_game_display()
+        self.updateGameDisplay()
 
-    def handle_wrong_answer(self, message, details=""):
+    def handleWrongAnswer(self, message, details=""):
         """Handle wrong answer logic"""
-        self.score = max(0, self.score - (2 if self.game_mode == "square_root" else 5))
+        # handles wrong answer logic - not as fun but necessary
+        if self.gameMode == "square_root":
+            penalty = 2
+        else:
+            penalty = 5
+        
+        new_score = self.score - penalty
+        if new_score < 0:
+            new_score = 0
+        self.score = new_score
+        
         self.streak = 0
-        self.lives_system.reduce_player_lives(1)
-        self.lives_label.config(text=self.lives_system.get_player_life_display())
-        utils.play_sound("incorrect")
+        self.livesSys.reducePlayerLives(1)
+        self.livesLabel.config(text=self.livesSys.getPlayerLifeDisplay())
+        utils.playSound("incorrect")
         
         # Update enemy lives display for ALL game modes
-        self.enemy_lives_label.config(text=self.lives_system.get_enemy_life_display())
+        self.enemyLivesLabel.config(text=self.livesSys.getEnemyLifeDisplay())
         
-        full_message = f"{message}\n{details}" if details else message
-        self.show_message_with_timer_freeze("Result", full_message, "error")
-        
-        if self.lives_system.is_player_defeated():
-            self.end_game()
+        if len(details) > 0:
+            fullMessage = message + "\n" + details
         else:
-            self.update_game_display()
+            fullMessage = message
+        self.showMessageWithTimerFreeze("Result", fullMessage, "error")
+        
+        if self.livesSys.isPlayerDefeated():
+            self.endGame()
+        else:
+            self.updateGameDisplay()
 
-    def update_game_display(self):
+    def updateGameDisplay(self):
         """Update game display after answer"""
-        self.score_label.config(text=f"Score: {self.score}")
+        # updates game display after answer
+        score_text = "Score: " + str(self.score)
+        self.scoreLabel.config(text=score_text)
         
         # Update enemy lives display for ALL game modes
-        self.enemy_lives_label.config(text=self.lives_system.get_enemy_life_display())
+        self.enemyLivesLabel.config(text=self.livesSys.getEnemyLifeDisplay())
         
-        if self.game_mode == "square_root":
-            self.time_left = SQUARE_ROOT_TIME
-            self.generate_square_root_question()
-        elif self.game_mode == "integration":
-            self.time_left = INTEGRATION_TIME
-            self.generate_integration_question()
-        elif self.game_mode == "differentiation":
-            self.time_left = DIFFERENTIATION_TIME
-            self.generate_differentiation_question()
-        elif self.game_mode == "pokemon_battle":
-            self.time_left = POKEMON_BATTLE_TIME
-            self.generate_pokemon_question()
+        if self.gameMode == "square_root":
+            self.generateSquareRootQuestion()
+        elif self.gameMode == "integration":
+            self.generateIntegrationQuestion()
+        elif self.gameMode == "differentiation":
+            self.generateDifferentiationQuestion()
         else:
-            self.time_left = ALGEBRA_TIME
-            self.generate_question()
+            self.generateQuestion()
         
-        self.time_label.config(text=f"Time: {self.time_left}s")
+        time_text = "Time: " + str(self.timeLeft) + "s"
+        self.timeLabel.config(text=time_text)
 
-    def start_timer(self):
+    def startTimer(self):
         """Start the game timer"""
-        if self.timer_id:
-            self.root.after_cancel(self.timer_id)
+        # starts the game timer
+        if self.timerId:
+            self.root.after_cancel(self.timerId)
         
         # Set appropriate time limit based on game mode
-        if hasattr(self, 'game_mode'):
-            if self.game_mode == "square_root":
-                self.time_left = SQUARE_ROOT_TIME
-            elif self.game_mode == "integration":
-                self.time_left = INTEGRATION_TIME
-            elif self.game_mode == "differentiation":
-                self.time_left = DIFFERENTIATION_TIME
-            elif self.game_mode == "pokemon_battle":
-                self.time_left = POKEMON_BATTLE_TIME
-            else:
-                self.time_left = ALGEBRA_TIME
+        if hasattr(self, 'gameMode'):
+            self.timeLeft = self.gameConfig.getTimeLimit(self.gameMode)
         
-        self.update_timer()
+        self.updateTimer()
 
-    def update_timer(self):
+    def updateTimer(self):
         """Update game timer"""
-        if self.time_left > 0:
-            self.time_left -= 1
-            self.time_label.config(text=f"Time: {self.time_left}s")
-            if self.time_left <= 3:
-                utils.animate_time_warning(self.time_label, self.root)
-            self.timer_id = self.root.after(1000, self.update_timer)
+        # updates game timer - this runs every second
+        if self.timeLeft > 0:
+            self.timeLeft = self.timeLeft - 1
+            time_text = "Time: " + str(self.timeLeft) + "s"
+            self.timeLabel.config(text=time_text)
+            if self.timeLeft <= 3:
+                utils.animateTimeWarning(self.timeLabel, self.root)
+            self.timerId = self.root.after(1000, self.updateTimer)
         else:
-            self.lives_system.reduce_player_lives(1)
-            self.lives_label.config(text=self.lives_system.get_player_life_display())
+            self.livesSys.reducePlayerLives(1)
+            self.livesLabel.config(text=self.livesSys.getPlayerLifeDisplay())
             
             # Update enemy lives display for ALL game modes
-            self.enemy_lives_label.config(text=self.lives_system.get_enemy_life_display())
+            self.enemyLivesLabel.config(text=self.livesSys.getEnemyLifeDisplay())
             
-            utils.play_sound("incorrect")
-            if self.lives_system.is_player_defeated():
-                self.end_game()
+            utils.playSound("incorrect")
+            if self.livesSys.isPlayerDefeated():
+                self.endGame()
             else:
-                if self.game_mode == "square_root":
-                    self.time_left = SQUARE_ROOT_TIME
-                    self.generate_square_root_question()
-                elif self.game_mode == "integration":
-                    self.time_left = INTEGRATION_TIME
-                    self.generate_integration_question()
-                elif self.game_mode == "differentiation":
-                    self.time_left = DIFFERENTIATION_TIME
-                    self.generate_differentiation_question()
-                elif self.game_mode == "pokemon_battle":
-                    self.time_left = POKEMON_BATTLE_TIME
-                    self.generate_pokemon_question()
+                self.timeLeft = self.gameConfig.getTimeLimit(self.gameMode)
+                if self.gameMode == "square_root":
+                    self.generateSquareRootQuestion()
+                elif self.gameMode == "integration":
+                    self.generateIntegrationQuestion()
+                elif self.gameMode == "differentiation":
+                    self.generateDifferentiationQuestion()
                 else:
-                    self.time_left = ALGEBRA_TIME
-                    self.generate_question()
-                self.update_timer()
+                    self.generateQuestion()
+                self.updateTimer()
 
-    def freeze_timer(self):
+    def freezeTimer(self):
         """Freeze the game timer"""
-        if self.timer_id and not self.timer_frozen:
-            self.timer_frozen = True
-            self.frozen_time_left = self.time_left
-            self.root.after_cancel(self.timer_id)
-            self.timer_id = None
+        # freezes the game timer - useful for message boxes
+        if self.timerId and not self.timerFrozen:
+            self.timerFrozen = True
+            self.frozenTimeLeft = self.timeLeft
+            self.root.after_cancel(self.timerId)
+            self.timerId = None
 
-    def resume_timer(self):
+    def resumeTimer(self):
         """Resume the game timer"""
-        if self.timer_frozen:
-            self.timer_frozen = False
-            self.time_left = self.frozen_time_left
-            self.start_timer()
+        # resumes the game timer
+        if self.timerFrozen:
+            self.timerFrozen = False
+            self.timeLeft = self.frozenTimeLeft
+            self.startTimer()
 
-    def show_message_with_timer_freeze(self, title, message, message_type="info"):
+    def showMessageWithTimerFreeze(self, title, message, messageType="info"):
         """Show message box with timer freeze/resume"""
-        self.freeze_timer()
+        # shows message box with timer freeze/resume - keeps things in sync
+        self.freezeTimer()
         
-        message_functions = {
-            "info": messagebox.showinfo,
-            "error": messagebox.showerror,
-            "warning": messagebox.showwarning,
-            "yesno": messagebox.askyesno
-        }
+        messageFunctions = {}
+        messageFunctions["info"] = messagebox.showinfo
+        messageFunctions["error"] = messagebox.showerror
+        messageFunctions["warning"] = messagebox.showwarning
+        messageFunctions["yesno"] = messagebox.askyesno
         
-        result = message_functions.get(message_type, messagebox.showinfo)(title, message)
-        self.resume_timer()
+        if messageType in messageFunctions:
+            result = messageFunctions[messageType](title, message)
+        else:
+            result = messagebox.showinfo(title, message)
+        
+        self.resumeTimer()
         return result
 
-    def end_game(self):
+    def endGame(self):
         """End the game and show results"""
-        coins_earned = self.data_manager.calculate_coins_earned_in_game(self.player_name, self.score, self.game_mode)
-        result = self.show_message_with_timer_freeze("Game Over", 
-            f"You're out of lives!\n\nFinal Score: {self.score}\nGold Coins Earned: {coins_earned}\n\nWould you like to play again?", "yesno")
-        self.data_manager.update_leaderboard(self.player_name, self.score, self.difficulty)
-        if result:
-            self.show_difficulty_selection()
-        else:
-            self.root.quit()
+        # ends the game and shows results
+        game_over_message = "You're out of lives!\n\nFinal Score: " + str(self.score) + "\n\nReturning to difficulty selection..."
+        self.showMessageWithTimerFreeze("Game Over", game_over_message, "info")
+        self.dataMgr.updateLeaderboard(self.playerName, self.score, self.difficulty)
+        # Always return to difficulty selection page
+        self.showUsernameAndDifficultyPage()
 
-    def setup_pokemon_battle_ui(self):
+    def endGameAfterVictory(self):
+        """End the game after a victory with appropriate message"""
+        # ends the game after a victory with appropriate message
+        victory_message = "Congratulations on your victory!\n\n📊 Final Score: " + str(self.score) + "\n\nReturning to game setup..."
+        self.showMessageWithTimerFreeze("🏆 Game Complete!", victory_message, "info")
+        self.dataMgr.updateLeaderboard(self.playerName, self.score, self.difficulty)
+        # Always return to combined username and difficulty page
+        self.showUsernameAndDifficultyPage()
+
+    def setupPokemonBattleUi(self):
         """Setup Pokémon battle game UI with battle background and sprites"""
-        self.clear_window()
+        # sets up pokemon battle game UI with battle background and sprites - this is the fun part
+        self.clearWindow()
         
-        # Set up the battle background with a pure color
-        # Using a Pokémon-themed blue color for the battle arena
-        battle_bg_color = "#87CEEB"  # Sky blue color
+        # Set up the battle background with Charizard-inspired color
+        # Using the Shadow Color (Dark Teal) for the battle arena
+        battleBgColor = "#264653"  # Shadow Color (Dark Teal)
         
         # Create background label with pure color
-        self.battle_bg_label = tk.Label(self.root, bg=battle_bg_color)
-        self.battle_bg_label.place(x=0, y=0, relwidth=1, relheight=1)
-        print("✅ Battle background set to sky blue color!")
+        self.battleBgLabel = tk.Label(self.root, bg=battleBgColor)
+        self.battleBgLabel.place(x=0, y=0, relwidth=1, relheight=1)
+        print("✅ Battle background set to Charizard-inspired dark teal color!")
         
-        # Load Pokémon sprites
+        # Load pokemon sprites
         try:
             # Load Pikachu sprite (player)
-            pikachu_img = Image.open("assets/pikachu.png")
-            pikachu_img = pikachu_img.resize((120, 120), Image.Resampling.LANCZOS)
-            self.pikachu_photo = ImageTk.PhotoImage(pikachu_img)
+            pikachuImg = Image.open("assets/pikachu.png")
+            pikachuImg = pikachuImg.resize((120, 120), Image.Resampling.LANCZOS)
+            self.pikachuPhoto = ImageTk.PhotoImage(pikachuImg)
             print("✅ Pikachu sprite loaded successfully!")
             
-            # Load enemy Pokémon sprites
+            # Load enemy pokemon sprites
             # Squirtle
-            squirtle_img = Image.open("assets/turtle.png")
-            squirtle_img = squirtle_img.resize((120, 120), Image.Resampling.LANCZOS)
-            self.squirtle_photo = ImageTk.PhotoImage(squirtle_img)
+            squirtleImg = Image.open("assets/turtle.png")
+            squirtleImg = squirtleImg.resize((120, 120), Image.Resampling.LANCZOS)
+            self.squirtlePhoto = ImageTk.PhotoImage(squirtleImg)
             print("✅ Squirtle sprite loaded successfully!")
             
             # Charmander (pokemon_1.png)
-            charmander_img = Image.open("assets/pokemon_1.png")
-            charmander_img = charmander_img.resize((120, 120), Image.Resampling.LANCZOS)
-            self.charmander_photo = ImageTk.PhotoImage(charmander_img)
+            charmanderImg = Image.open("assets/pokemon_1.png")
+            charmanderImg = charmanderImg.resize((120, 120), Image.Resampling.LANCZOS)
+            self.charmanderPhoto = ImageTk.PhotoImage(charmanderImg)
             print("✅ Charmander sprite loaded successfully!")
             
             # Gengar (pokemon_2.png)
-            gengar_img = Image.open("assets/pokemon_2.png")
-            gengar_img = gengar_img.resize((120, 120), Image.Resampling.LANCZOS)
-            self.gengar_photo = ImageTk.PhotoImage(gengar_img)
+            gengarImg = Image.open("assets/pokemon_2.png")
+            gengarImg = gengarImg.resize((120, 120), Image.Resampling.LANCZOS)
+            self.gengarPhoto = ImageTk.PhotoImage(gengarImg)
             print("✅ Gengar sprite loaded successfully!")
             
             # Eevee (pokemon_3.png)
-            eevee_img = Image.open("assets/pokemon_3.png")
-            eevee_img = eevee_img.resize((120, 120), Image.Resampling.LANCZOS)
-            self.eevee_photo = ImageTk.PhotoImage(eevee_img)
+            eeveeImg = Image.open("assets/pokemon_3.png")
+            eeveeImg = eeveeImg.resize((120, 120), Image.Resampling.LANCZOS)
+            self.eeveePhoto = ImageTk.PhotoImage(eeveeImg)
             print("✅ Eevee sprite loaded successfully!")
             
             # Bulbasaur (pokemon_4.png)
-            bulbasaur_img = Image.open("assets/pokemon_4.png")
-            bulbasaur_img = bulbasaur_img.resize((120, 120), Image.Resampling.LANCZOS)
-            self.bulbasaur_photo = ImageTk.PhotoImage(bulbasaur_img)
+            bulbasaurImg = Image.open("assets/pokemon_4.png")
+            bulbasaurImg = bulbasaurImg.resize((120, 120), Image.Resampling.LANCZOS)
+            self.bulbasaurPhoto = ImageTk.PhotoImage(bulbasaurImg)
             print("✅ Bulbasaur sprite loaded successfully!")
             
         except Exception as e:
-            print(f"❌ Pokémon sprite error: {e}")
+            print("❌ pokemon sprite error: " + str(e))
             # Try alternative paths for sprites
             try:
                 # Try loading from root directory
-                pikachu_img = Image.open("pikachu.png")
-                pikachu_img = pikachu_img.resize((120, 120), Image.Resampling.LANCZOS)
-                self.pikachu_photo = ImageTk.PhotoImage(pikachu_img)
+                pikachuImg = Image.open("pikachu.png")
+                pikachuImg = pikachuImg.resize((120, 120), Image.Resampling.LANCZOS)
+                self.pikachuPhoto = ImageTk.PhotoImage(pikachuImg)
                 print("✅ Pikachu sprite loaded from root directory!")
                 
-                squirtle_img = Image.open("turtle.png")
-                squirtle_img = squirtle_img.resize((120, 120), Image.Resampling.LANCZOS)
-                self.squirtle_photo = ImageTk.PhotoImage(squirtle_img)
+                squirtleImg = Image.open("turtle.png")
+                squirtleImg = squirtleImg.resize((120, 120), Image.Resampling.LANCZOS)
+                self.squirtlePhoto = ImageTk.PhotoImage(squirtleImg)
                 print("✅ Squirtle sprite loaded from root directory!")
                 
-                charmander_img = Image.open("pokemon_1.png")
-                charmander_img = charmander_img.resize((120, 120), Image.Resampling.LANCZOS)
-                self.charmander_photo = ImageTk.PhotoImage(charmander_img)
+                charmanderImg = Image.open("pokemon_1.png")
+                charmanderImg = charmanderImg.resize((120, 120), Image.Resampling.LANCZOS)
+                self.charmanderPhoto = ImageTk.PhotoImage(charmanderImg)
                 print("✅ Charmander sprite loaded from root directory!")
                 
-                gengar_img = Image.open("pokemon_2.png")
-                gengar_img = gengar_img.resize((120, 120), Image.Resampling.LANCZOS)
-                self.gengar_photo = ImageTk.PhotoImage(gengar_img)
+                gengarImg = Image.open("pokemon_2.png")
+                gengarImg = gengarImg.resize((120, 120), Image.Resampling.LANCZOS)
+                self.gengarPhoto = ImageTk.PhotoImage(gengarImg)
                 print("✅ Gengar sprite loaded from root directory!")
                 
-                eevee_img = Image.open("pokemon_3.png")
-                eevee_img = eevee_img.resize((120, 120), Image.Resampling.LANCZOS)
-                self.eevee_photo = ImageTk.PhotoImage(eevee_img)
+                eeveeImg = Image.open("pokemon_3.png")
+                eeveeImg = eeveeImg.resize((120, 120), Image.Resampling.LANCZOS)
+                self.eeveePhoto = ImageTk.PhotoImage(eeveeImg)
                 print("✅ Eevee sprite loaded from root directory!")
                 
-                bulbasaur_img = Image.open("pokemon_4.png")
-                bulbasaur_img = bulbasaur_img.resize((120, 120), Image.Resampling.LANCZOS)
-                self.bulbasaur_photo = ImageTk.PhotoImage(bulbasaur_img)
+                bulbasaurImg = Image.open("pokemon_4.png")
+                bulbasaurImg = bulbasaurImg.resize((120, 120), Image.Resampling.LANCZOS)
+                self.bulbasaurPhoto = ImageTk.PhotoImage(bulbasaurImg)
                 print("✅ Bulbasaur sprite loaded from root directory!")
                 
             except Exception as e2:
-                print(f"❌ Pokémon sprites not found in root either: {e2}")
+                print("❌ pokemon sprites not found in root either: " + str(e2))
                 # Fallback sprites if images not found
-                self.pikachu_photo = None
-                self.squirtle_photo = None
-                self.charmander_photo = None
-                self.gengar_photo = None
-                self.eevee_photo = None
-                self.bulbasaur_photo = None
+                self.pikachuPhoto = None
+                self.squirtlePhoto = None
+                self.charmanderPhoto = None
+                self.gengarPhoto = None
+                self.eeveePhoto = None
+                self.bulbasaurPhoto = None
         
-        # Select random enemy Pokémon
-        self.select_random_enemy()
+        # Select random enemy pokemon
+        self.selectRandomEnemy()
         
         # Create battle interface overlay
-        battle_overlay = tk.Frame(self.root)
-        battle_overlay.place(relx=0.5, rely=0.5, anchor="center")
+        battleOverlay = tk.Frame(self.root)
+        battleOverlay.place(relx=0.5, rely=0.5, anchor="center")
         
         # Top section - Battle info and stats
-        top_frame = tk.Frame(battle_overlay, bg="#FED000", relief="raised", bd=3)
-        top_frame.pack(fill="x", pady=10)
+        topFrame = tk.Frame(battleOverlay, relief="raised", bd=3)  # Secondary Color (Pale Yellow)
+        topFrame.pack(fill="x", pady=10)
         
         # Player side (left) - Pikachu
-        player_frame = tk.Frame(top_frame, bg="#FED000")
-        player_frame.pack(side="left", padx=20, pady=10)
+        playerFrame = tk.Frame(topFrame)
+        playerFrame.pack(side="left", padx=20, pady=10)
         
-        if self.pikachu_photo:
-            self.pikachu_label = tk.Label(player_frame, image=self.pikachu_photo, bg="#FED000")
-            self.pikachu_label.pack()
+        if self.pikachuPhoto:
+            self.pikachuLabel = tk.Label(playerFrame, image=self.pikachuPhoto)
+            self.pikachuLabel.pack()
         else:
-            self.pikachu_label = tk.Label(player_frame, text="⚡ Pikachu", font=("Arial", 16, "bold"), 
-                    bg="#FED000", fg="#FFD700")
-            self.pikachu_label.pack()
+            self.pikachuLabel = tk.Label(playerFrame, text="⚡ Pikachu", font=("Orbitron", 16, "bold"), 
+                    fg="#FF6D28")  # Primary Color for text
+            self.pikachuLabel.pack()
         
-        tk.Label(player_frame, text=f"Player: {self.player_name}", 
-                font=self.label_font, bg="#FED000").pack()
+        player_name_text = "Player: " + self.playerName
+        playerNameLabel = tk.Label(playerFrame, text=player_name_text, 
+                font=self.labelFont, fg="#4E342E")  # Outline Color for text
+        playerNameLabel.pack()
         
         # Battle stats (center)
-        stats_frame = tk.Frame(top_frame, bg="#FED000")
-        stats_frame.pack(side="left", padx=40, pady=10)
+        statsFrame = tk.Frame(topFrame)
+        statsFrame.pack(side="left", padx=40, pady=10)
         
-        self.score_label = tk.Label(stats_frame, text=f"Score: {self.score}", 
-                                   font=self.label_font, bg="#FED000")
-        self.score_label.pack()
+        score_text = "Score: " + str(self.score)
+        self.scoreLabel = tk.Label(statsFrame, text=score_text, 
+                                   font=self.labelFont, fg="#4E342E")
+        self.scoreLabel.pack()
         
-        self.time_label = tk.Label(stats_frame, text=f"Time: {self.time_left}s", 
-                                  font=self.label_font, bg="#FED000")
-        self.time_label.pack()
+        time_text = "Time: " + str(self.timeLeft) + "s"
+        self.timeLabel = tk.Label(statsFrame, text=time_text, 
+                                  font=self.labelFont, fg="#4E342E")
+        self.timeLabel.pack()
         
-        self.lives_label = tk.Label(stats_frame, text=self.lives_system.get_player_life_display(), 
-                                   font=self.label_font, fg="red", bg="#FED000")
-        self.lives_label.pack()
+        self.livesLabel = tk.Label(statsFrame, text=self.livesSys.getPlayerLifeDisplay(), 
+                                   font=self.labelFont, fg="#FF6D28")  # Primary Color for lives
+        self.livesLabel.pack()
         
         # Enemy side (right) - Random enemy
-        enemy_frame = tk.Frame(top_frame, bg="#FED000")
-        enemy_frame.pack(side="right", padx=20, pady=10)
+        enemyFrame = tk.Frame(topFrame)
+        enemyFrame.pack(side="right", padx=20, pady=10)
         
-        # Display the selected enemy Pokémon
-        if hasattr(self, 'current_enemy_photo') and self.current_enemy_photo:
-            self.enemy_label = tk.Label(enemy_frame, image=self.current_enemy_photo, bg="#FED000")
-            self.enemy_label.pack()
+        # Display the selected enemy pokemon
+        if hasattr(self, 'currentEnemyPhoto') and self.currentEnemyPhoto:
+            self.enemyLabel = tk.Label(enemyFrame, image=self.currentEnemyPhoto)
+            self.enemyLabel.pack()
         else:
             # Fallback text based on enemy type
-            enemy_text = self.get_enemy_text()
-            self.enemy_label = tk.Label(enemy_frame, text=enemy_text, font=("Arial", 16, "bold"), 
-                    bg="#FED000", fg=self.get_enemy_color())
-            self.enemy_label.pack()
+            enemyText = self.getEnemyText()
+            self.enemyLabel = tk.Label(enemyFrame, text=enemyText, font=("Orbitron", 16, "bold"), 
+                    fg="#0077B6")  # Accent Color for enemy text
+            self.enemyLabel.pack()
         
-        tk.Label(enemy_frame, text="Enemy Trainer", 
-                font=self.label_font, bg="#FED000").pack()
+        enemyTrainerLabel = tk.Label(enemyFrame, text="Enemy Trainer", 
+                font=self.labelFont, fg="#4E342E")  # Outline Color for text
+        enemyTrainerLabel.pack()
         
         # Enemy lives display
-        self.enemy_lives_label = tk.Label(enemy_frame, text=self.lives_system.get_enemy_life_display(), 
-                                         font=self.label_font, fg="red", bg="#FED000")
-        self.enemy_lives_label.pack()
+        self.enemyLivesLabel = tk.Label(enemyFrame, text=self.livesSys.getEnemyLifeDisplay(), 
+                                         font=self.labelFont, fg="#264653")  # Shadow Color for enemy lives
+        self.enemyLivesLabel.pack()
         
         # Battle arena - middle section
-        arena_frame = tk.Frame(battle_overlay, bg="#FED000", relief="raised", bd=3)
-        arena_frame.pack(fill="x", pady=20)
+        arenaFrame = tk.Frame(battleOverlay, relief="raised", bd=3)  # Secondary Color (Pale Yellow)
+        arenaFrame.pack(fill="x", pady=20)
         
         # Battle message display
-        self.battle_message = tk.Label(arena_frame, text="", font=self.label_font, 
-                                     bg="#FED000", wraplength=400, fg="#8B0000")
-        self.battle_message.pack(pady=10)
+        self.battleMessage = tk.Label(arenaFrame, text="", font=self.labelFont, 
+                                     wraplength=400, fg="#4E342E")  # Outline Color for text
+        self.battleMessage.pack(pady=10)
         
         # Question area
-        self.question_label = tk.Label(arena_frame, text="", font=self.label_font, 
-                                     bg="#FED000", wraplength=400)
-        self.question_label.pack(pady=10)
+        self.questionLabel = tk.Label(arenaFrame, text="", font=("Comic Sans MS", 14), 
+                                     wraplength=400, fg="#4E342E")  # Outline Color for text
+        self.questionLabel.pack(pady=10)
         
         # Answer area - will be configured based on game mode
-        self.answer_frame = tk.Frame(arena_frame, bg="#FED000")
-        self.answer_frame.pack(pady=10)
+        self.answerFrame = tk.Frame(arenaFrame)
+        self.answerFrame.pack(pady=10)
         
         # Action buttons
-        button_frame = tk.Frame(arena_frame, bg="#FED000")
-        button_frame.pack(pady=10)
+        buttonFrame = tk.Frame(arenaFrame)
+        buttonFrame.pack(pady=10)
         
-        tk.Button(button_frame, text="Back", font=self.button_font, bg="#f44336",
-                  fg="white", command=self.confirm_back_to_menu).pack(side="left", padx=5)
+        backButton = tk.Button(buttonFrame, text="Back", font=self.buttonFont, bg="#264653",  # Shadow Color
+                  fg="#FFE156", command=self.confirmBackToMenu, relief="raised", bd=2)
+        backButton.pack(side="left", padx=5)
+        
+        returnButton = tk.Button(buttonFrame, text="Return to Start", font=self.buttonFont, bg="#f44336",  # Red color
+                  fg="#FFE156", command=self.confirmReturnToStart, relief="raised", bd=2)
+        returnButton.pack(side="left", padx=5)
         
         # Configure answer area based on game mode
-        self.configure_answer_area()
+        self.configureAnswerArea()
 
-    def configure_answer_area(self):
+    def configureAnswerArea(self):
         """Configure the answer area based on game mode"""
+        # configures the answer area based on game mode
         # Clear previous answer widgets
-        for widget in self.answer_frame.winfo_children():
+        for widget in self.answerFrame.winfo_children():
             widget.destroy()
         
-        if self.game_mode in ["algebra", "square_root", "pokemon_battle"]:
-            # Text input for algebra, square root, and Pokémon battle
-            tk.Label(self.answer_frame, text="Your Answer:", font=self.label_font, 
-                    bg="#FED000").pack()
+        if self.gameMode in ["algebra", "square_root"]:
+            # Text input for algebra, square root, and pokemon battle
+            answerPromptLabel = tk.Label(self.answerFrame, text="Your Answer:", font=("Comic Sans MS", 14), 
+                    fg="#4E342E")  # Secondary Color background, Outline Color text
+            answerPromptLabel.pack()
             
-            self.answer_entry = tk.Entry(self.answer_frame, font=self.label_font, width=20)
-            self.answer_entry.pack(pady=5)
+            self.answerEntry = tk.Entry(self.answerFrame, font=("Comic Sans MS", 14), width=20, 
+                                       fg="#4E342E", relief="raised", bd=2)  # Secondary Color background, Outline Color text
+            self.answerEntry.pack(pady=5)
             
             # Bind to appropriate check method
-            if self.game_mode == "algebra":
-                self.answer_entry.bind("<Return>", self.check_algebra_answer)
-                attack_btn = tk.Button(self.answer_frame, text="⚡ Attack!", font=self.button_font, bg="#FF6B6B",
-                                      fg="white", command=self.check_algebra_answer)
-            elif self.game_mode == "square_root":
-                self.answer_entry.bind("<Return>", self.check_square_root_answer)
-                attack_btn = tk.Button(self.answer_frame, text="⚡ Attack!", font=self.button_font, bg="#FF6B6B",
-                                      fg="white", command=self.check_square_root_answer)
-            else:  # pokemon_battle
-                self.answer_entry.bind("<Return>", self.check_pokemon_answer)
-                attack_btn = tk.Button(self.answer_frame, text="⚡ Attack!", font=self.button_font, bg="#FF6B6B",
-                                      fg="white", command=self.check_pokemon_answer)
+            if self.gameMode == "algebra":
+                self.answerEntry.bind("<Return>", self.checkAlgebraAnswer)
+                attackBtn = tk.Button(self.answerFrame, text="⚡ Attack!", font=self.buttonFont, bg="#FF6D28",  # Primary Color
+                                      fg="#FFE156", command=self.checkAlgebraAnswer, width=15, height=2, relief="raised", bd=2)  # Secondary Color text
+            elif self.gameMode == "square_root":
+                self.answerEntry.bind("<Return>", self.checkSquareRootAnswer)
+                attackBtn = tk.Button(self.answerFrame, text="⚡ Attack!", font=self.buttonFont, bg="#FF6D28",  # Primary Color
+                                      fg="#FFE156", command=self.checkSquareRootAnswer, width=15, height=2, relief="raised", bd=2)  # Secondary Color text
+
             
-            attack_btn.pack(pady=5)
+            attackBtn.pack(pady=5)
             
-        elif self.game_mode in ["integration", "differentiation"]:
+        elif self.gameMode in ["integration", "differentiation"]:
             # Multiple choice for integration and differentiation
-            self.options_frame = tk.Frame(self.answer_frame, bg="#FED000")
-            self.options_frame.pack(pady=5)
+            self.optionsFrame = tk.Frame(self.answerFrame)  # Secondary Color
+            self.optionsFrame.pack(pady=5)
             
             # Options will be populated by the question generation methods
 
-    def select_random_enemy(self):
+    def selectRandomEnemy(self):
         """Select a random enemy Pokémon"""
-        enemies = [
-            {"name": "Squirtle", "photo": self.squirtle_photo, "text": "💧 Squirtle", "color": "#87CEEB"},
-            {"name": "Charmander", "photo": self.charmander_photo, "text": "🔥 Charmander", "color": "#FF6B35"},
-            {"name": "Gengar", "photo": self.gengar_photo, "text": "👻 Gengar", "color": "#8B5A96"},
-            {"name": "Eevee", "photo": self.eevee_photo, "text": "🦊 Eevee", "color": "#D2B48C"},
-            {"name": "Bulbasaur", "photo": self.bulbasaur_photo, "text": "🌱 Bulbasaur", "color": "#90EE90"}
-        ]
+        # selects a random enemy pokemon
+        enemies = []
+        enemies.append({"name": "Squirtle", "photo": self.squirtlePhoto, "text": "💧 Squirtle", "color": "#87CEEB"})
+        enemies.append({"name": "Charmander", "photo": self.charmanderPhoto, "text": "🔥 Charmander", "color": "#FF6B35"})
+        enemies.append({"name": "Gengar", "photo": self.gengarPhoto, "text": "👻 Gengar", "color": "#8B5A96"})
+        enemies.append({"name": "Eevee", "photo": self.eeveePhoto, "text": "🦊 Eevee", "color": "#D2B48C"})
+        enemies.append({"name": "Bulbasaur", "photo": self.bulbasaurPhoto, "text": "🌱 Bulbasaur", "color": "#90EE90"})
         
-        self.current_enemy = random.choice(enemies)
-        self.current_enemy_photo = self.current_enemy["photo"]
-        self.current_enemy_name = self.current_enemy["name"]
-        print(f"🎯 Selected enemy: {self.current_enemy_name}")
+        self.currentEnemy = random.choice(enemies)
+        self.currentEnemyPhoto = self.currentEnemy["photo"]
+        self.currentEnemyName = self.currentEnemy["name"]
+        print("🎯 Selected enemy: " + self.currentEnemyName)
 
-    def get_enemy_name(self):
+    def getEnemyName(self):
         """Get the name of the current enemy"""
-        if hasattr(self, 'current_enemy'):
-            return self.current_enemy["name"]
+        # gets the name of the current enemy
+        if hasattr(self, 'currentEnemy'):
+            return self.currentEnemy["name"]
         return "Squirtle"  # Default fallback
 
-    def get_enemy_text(self):
+    def getEnemyText(self):
         """Get the text representation of the current enemy"""
-        if hasattr(self, 'current_enemy'):
-            return self.current_enemy["text"]
+        # gets the text representation of the current enemy
+        if hasattr(self, 'currentEnemy'):
+            return self.currentEnemy["text"]
         return "💧 Squirtle"  # Default fallback
 
-    def get_enemy_color(self):
+    def getEnemyColor(self):
         """Get the color for the current enemy"""
-        if hasattr(self, 'current_enemy'):
-            return self.current_enemy["color"]
+        # gets the color for the current enemy
+        if hasattr(self, 'currentEnemy'):
+            return self.currentEnemy["color"]
         return "#87CEEB"  # Default fallback
 
-    def flash_pokemon_red(self):
+    def flashPokemonRed(self):
         """Make the player's Pokémon flash red when hit"""
-        if hasattr(self, 'pikachu_label'):
+        # makes the player's pokemon flash red when hit
+        if hasattr(self, 'pikachuLabel'):
             # Flash the Pikachu label red
-            original_bg = self.pikachu_label.cget('bg')
-            self.pikachu_label.config(bg='red')
+            originalBg = self.pikachuLabel.cget('bg')
+            self.pikachuLabel.config(bg='red')
             
             # Return to original color after 300ms
-            self.root.after(300, lambda: self.pikachu_label.config(bg=original_bg))
+            def restoreColor():
+                self.pikachuLabel.config(bg=originalBg)
+            self.root.after(300, restoreColor)
         else:
             # Fallback: flash the entire player frame
-            self.flash_player_frame_red()
+            self.flashPlayerFrameRed()
 
-    def flash_enemy_red(self):
+    def flashEnemyRed(self):
         """Make the enemy's Pokémon flash red when hit"""
-        if hasattr(self, 'enemy_label'):
+        # makes the enemy's pokemon flash red when hit
+        if hasattr(self, 'enemyLabel'):
             # Flash the enemy label red
-            original_bg = self.enemy_label.cget('bg')
-            self.enemy_label.config(bg='red')
+            originalBg = self.enemyLabel.cget('bg')
+            self.enemyLabel.config(bg='red')
             
             # Return to original color after 300ms
-            self.root.after(300, lambda: self.enemy_label.config(bg=original_bg))
+            def restoreColor():
+                self.enemyLabel.config(bg=originalBg)
+            self.root.after(300, restoreColor)
         else:
             # Fallback: flash the entire enemy frame
-            self.flash_enemy_frame_red()
+            self.flashEnemyFrameRed()
 
-    def flash_player_frame_red(self):
+    def flashPlayerFrameRed(self):
         """Flash the entire player frame red as fallback"""
+        # flashes the entire player frame red as fallback
         # Find the player frame (first frame in the top section)
         for widget in self.root.winfo_children():
             if hasattr(widget, 'winfo_children'):
@@ -980,13 +1315,16 @@ class MathGame:
                         for grandchild in child.winfo_children():
                             if isinstance(grandchild, tk.Frame) and grandchild.cget('bg') == '#FED000':
                                 # This is likely the player frame
-                                original_bg = grandchild.cget('bg')
+                                originalBg = grandchild.cget('bg')
                                 grandchild.config(bg='red')
-                                self.root.after(300, lambda: grandchild.config(bg=original_bg))
+                                def restoreColor():
+                                    grandchild.config(bg=originalBg)
+                                self.root.after(300, restoreColor)
                                 return
 
-    def flash_enemy_frame_red(self):
+    def flashEnemyFrameRed(self):
         """Flash the entire enemy frame red as fallback"""
+        # flashes the entire enemy frame red as fallback
         # Find the enemy frame (right side frame in the top section)
         for widget in self.root.winfo_children():
             if hasattr(widget, 'winfo_children'):
@@ -995,156 +1333,174 @@ class MathGame:
                         for grandchild in child.winfo_children():
                             if isinstance(grandchild, tk.Frame) and grandchild.cget('bg') == '#FED000':
                                 # This is likely the enemy frame (right side)
-                                original_bg = grandchild.cget('bg')
+                                originalBg = grandchild.cget('bg')
                                 grandchild.config(bg='red')
-                                self.root.after(300, lambda: grandchild.config(bg=original_bg))
+                                def restoreColor():
+                                    grandchild.config(bg=originalBg)
+                                self.root.after(300, restoreColor)
                                 return
 
-    def handle_enemy_defeated(self):
+    def handleEnemyDefeated(self):
         """Handle when enemy is defeated"""
-        enemy_name = self.get_enemy_name()
-        victory_message = self.game_logic.get_victory_messages(enemy_name)
-        self.battle_message.config(text=victory_message, fg="#FFD700")  # Gold color for victory
+        # handles when enemy is defeated - victory!
+        enemyName = self.getEnemyName()
+        victoryMessage = self.gameLogic.getVictoryMessages(enemyName)
+        self.battleMessage.config(text=victoryMessage, fg="#FF9F1C")  # Orange color for victory  
         
         # Add bonus points for defeating enemy
-        bonus_points = 50
-        self.score += bonus_points
+        bonusPoints = 50
+        self.score = self.score + bonusPoints
         
-        # Show victory message
-        result = self.show_message_with_timer_freeze("Victory!", 
-            f"{victory_message}\n\nBonus Points: +{bonus_points}\nFinal Score: {self.score}\n\nWould you like to battle another trainer?", "yesno")
+        # Show victory message with appropriate title and content
+        victory_title = "🎉 VICTORY! 🎉"
+        victory_content = victoryMessage + "\n\n🏆 Bonus Points: +" + str(bonusPoints) + "\n📊 Current Score: " + str(self.score) + "\n\nWould you like to battle another trainer?"
+        result = self.showMessageWithTimerFreeze(victory_title, victory_content, "yesno")
         
         if result:
             # Reset enemy lives for next battle
-            self.lives_system.reset_enemy_lives()
-            self.enemy_lives_label.config(text=self.lives_system.get_enemy_life_display())
+            self.livesSys.resetEnemyLives()
+            self.enemyLivesLabel.config(text=self.livesSys.getEnemyLifeDisplay())
             
             # Select a new random enemy for the next battle
-            self.select_random_enemy()
+            self.selectRandomEnemy()
             
             # Update the enemy display
-            if hasattr(self, 'enemy_label'):
-                if self.current_enemy_photo:
-                    self.enemy_label.config(image=self.current_enemy_photo)
+            if hasattr(self, 'enemyLabel'):
+                if self.currentEnemyPhoto:
+                    self.enemyLabel.config(image=self.currentEnemyPhoto)
                 else:
-                    self.enemy_label.config(text=self.get_enemy_text(), fg=self.get_enemy_color())
+                    self.enemyLabel.config(text=self.getEnemyText(), fg=self.getEnemyColor())
             
+            # Generate new question and clear answer entry
+            if self.gameMode == "square_root":
+                self.generateSquareRootQuestion()
+            elif self.gameMode == "integration":
+                self.generateIntegrationQuestion()
+            elif self.gameMode == "differentiation":
+                self.generateDifferentiationQuestion()
+            else:
+                self.generateQuestion()
+            
+            # Reset battle message to default state
+            self.battleMessage.config(fg="black")  # Reset color to default
 
         else:
-            # End game and go back to menu
-            self.end_game()
+            # End game after victory with appropriate message
+            self.endGameAfterVictory()
 
-    def show_leaderboard(self):
+    def showLeaderboard(self):
         """Show leaderboard page"""
-        self.clear_window()
-        self.root.configure(bg="#FCE4EC")  # Light pink background
+        # shows leaderboard page
+        self.clearWindow()
+        self.drawBackground()  # Use Pokemon pixel background
         
-        self.data_manager.leaderboard = self.data_manager.load_leaderboard()
-        leaderboard_frame = self.create_centered_frame()
+        self.dataMgr.leaderboard = self.dataMgr.loadLeaderboard()
+        leaderboardFrame = self.createCenteredFrame()
 
-        tk.Label(leaderboard_frame, text="Leaderboard", font=self.title_font).grid(row=0, column=0, pady=20)
+        leaderboardTitleLabel = tk.Label(leaderboardFrame, text="Leaderboard", font=self.titleFont, bg="#0C1A31", fg="white")
+        leaderboardTitleLabel.grid(row=0, column=0, pady=20)
         
-        for idx, entry in enumerate(self.data_manager.leaderboard, 1):
-            player_name = entry.get('player_name', 'Unknown Player')
-            tk.Label(leaderboard_frame,
-                     text=f"{idx}. {player_name} - Score: {entry['score']} ({entry['difficulty']}) - {entry['timestamp']}",
-                     font=self.label_font).grid(row=idx, column=0, pady=2)
+        for idx in range(len(self.dataMgr.leaderboard)):
+            entry = self.dataMgr.leaderboard[idx]
+            playerName = entry.get('player_name', 'Unknown Player')
+            leaderboard_text = str(idx + 1) + ". " + playerName + " - Score: " + str(entry['score']) + " (" + entry['difficulty'] + ") - " + entry['timestamp']
+            leaderboardEntryLabel = tk.Label(leaderboardFrame, text=leaderboard_text, font=self.labelFont)
+            leaderboardEntryLabel.grid(row=idx + 1, column=0, pady=2)
 
-        buttons = [
-            ("Delete All Records", "#ff4444", "white", self.confirm_delete_all),
-            ("Back to Menu", self.button_color, "white", self.create_start_menu)
-        ]
+        buttons = []
+        buttons.append(("Delete All Records", "#ff4444", "white", self.confirmDeleteAll))
+        buttons.append(("Back", self.btnColor, "white", self.createStartMenu))
+        buttons.append(("Return to Start", "#264653", "white", self.createStartMenu))
         
-        for i, (text, bg, fg, command) in enumerate(buttons, len(self.data_manager.leaderboard) + 1):
-            tk.Button(leaderboard_frame, text=text, font=self.button_font, bg=bg,
-                     fg=fg, command=command).grid(row=i, column=0, pady=10 if i == len(self.data_manager.leaderboard) + 1 else 20)
-
-    def show_store(self):
-        """Show store page"""
-        self.clear_window()
-        self.root.configure(bg="#4CC7D8")   # Light blue background
+        # Create a frame for buttons to arrange them horizontally
+        buttonFrame = tk.Frame(leaderboardFrame, bg="#0C1A31")
+        buttonFrame.grid(row=len(self.dataMgr.leaderboard) + 1, column=0, pady=20)
         
-        store_frame = self.create_centered_frame()
-        
-        tk.Label(store_frame, text="🏪 Math Master Store", font=self.title_font).grid(row=0, column=0, pady=10)
-        player_coins = self.data_manager.get_player_gold_coins(self.player_name)
-        tk.Label(store_frame, text=f"💰 Gold Coins: {player_coins}", 
-                font=self.label_font, fg="#FFD700").grid(row=1, column=0, pady=5)
-        
-        for row, (item_name, item_data) in enumerate(self.data_manager.store_items.items(), 2):
-            item_frame = tk.Frame(store_frame)
-            item_frame.grid(row=row, column=0, pady=5, sticky="ew")
+        for i in range(len(buttons)):
+            button_info = buttons[i]
+            text = button_info[0]
+            bg = button_info[1]
+            fg = button_info[2]
+            command = button_info[3]
             
-            tk.Label(item_frame, text=f"🛒 {item_name}", font=self.button_font).grid(row=0, column=0, sticky="w")
-            tk.Label(item_frame, text=f"💡 {item_data['description']}", font=self.label_font).grid(row=1, column=0, sticky="w")
-            tk.Label(item_frame, text=f"💰 {item_data['price']} coins", font=self.label_font, fg="#FFD700").grid(row=2, column=0, sticky="w")
-            
-            tk.Button(item_frame, text="Buy", font=self.button_font, bg="#4CAF50", fg="white",
-                     command=lambda name=item_name: self.buy_item(name)).grid(row=0, column=1, rowspan=3, padx=10)
-        
-        tk.Button(store_frame, text="Back", font=self.button_font, bg=self.button_color,
-                  fg="white", command=self.show_difficulty_selection).grid(row=len(self.data_manager.store_items)+2, column=0, pady=20)
+            button = tk.Button(buttonFrame, text=text, font=self.buttonFont, bg=bg,
+                     fg=fg, command=command, width=15, height=2)
+            button.grid(row=0, column=i, padx=10)
 
-    def buy_item(self, item_name):
-        """Buy item from store"""
-        success, message = self.data_manager.buy_item(self.player_name, item_name)
-        if success:
-            messagebox.showinfo("Purchase Successful", message)
-        else:
-            messagebox.showerror("Purchase Failed", message)
-        self.show_store()
-
-    def confirm_delete_all(self):
+    def confirmDeleteAll(self):
         """Handle delete all records confirmation"""
-        if not self.data_manager.leaderboard:
+        # handles delete all records confirmation
+        if len(self.dataMgr.leaderboard) == 0:
             messagebox.showinfo("No Records", "There are no records to delete.")
             return
         
-        result = messagebox.askyesno("Delete All Records", 
-                                   f"Are you sure you want to delete ALL {len(self.data_manager.leaderboard)} records?\n\nThis action cannot be undone!")
+        delete_message = "Are you sure you want to delete ALL " + str(len(self.dataMgr.leaderboard)) + " records?\n\nThis action cannot be undone!"
+        result = messagebox.askyesno("Delete All Records", delete_message)
         if result:
-            success, message = self.data_manager.delete_all_records()
+            success, message = self.dataMgr.deleteAllRecords()
             if success:
                 messagebox.showinfo("Records Deleted", message)
             else:
                 messagebox.showerror("Error", message)
-            self.show_leaderboard()
+            self.showLeaderboard()
 
-    def confirm_back_to_menu(self):
+    def confirmBackToMenu(self):
         """Handle back to menu confirmation"""
+        # handles back to menu confirmation
         if hasattr(self, 'score') and self.score > 0:
-            if self.timer_id:
-                self.root.after_cancel(self.timer_id)
-                self.timer_id = None
+            if self.timerId:
+                self.root.after_cancel(self.timerId)
+                self.timerId = None
             
-            coins_earned = self.data_manager.calculate_coins_earned_in_game(self.player_name, self.score, self.game_mode)
-            result = messagebox.askyesno("Return to Menu", 
-                                       f"Are you sure you want to return to the difficulty selection?\n\nCurrent Score: {self.score}\nDifficulty: {self.difficulty.capitalize()}\nGold Coins Earned: {coins_earned}\n\nYour score will be saved before returning.")
+            back_message = "Are you sure you want to return to the difficulty selection?\n\nCurrent Score: " + str(self.score) + "\nDifficulty: " + self.difficulty.capitalize() + "\n\nYour score will be saved before returning."
+            result = messagebox.askyesno("Return to Menu", back_message)
             if result:
-                self.data_manager.update_leaderboard(self.player_name, self.score, self.difficulty)
-                messagebox.showinfo("Score Saved", f"Your score of {self.score} has been saved to the leaderboard!\nGold Coins Earned: {coins_earned}")
-                self.show_difficulty_selection()
+                self.dataMgr.updateLeaderboard(self.playerName, self.score, self.difficulty)
+                save_message = "Your score of " + str(self.score) + " has been saved to the leaderboard!"
+                messagebox.showinfo("Score Saved", save_message)
+                self.showUsernameAndDifficultyPage()
             else:
-                self.start_timer()
+                self.startTimer()
         else:
-            self.show_difficulty_selection()
+            self.showDifficultySelection()
 
-    def confirm_exit(self):
-        """Handle exit confirmation"""
+    def confirmReturnToStart(self):
+        """Handle return to start menu confirmation"""
+        # handles return to start menu confirmation
         if hasattr(self, 'score') and self.score > 0:
-            if self.timer_id:
-                self.root.after_cancel(self.timer_id)
-                self.timer_id = None
+            if self.timerId:
+                self.root.after_cancel(self.timerId)
+                self.timerId = None
             
-            coins_earned = self.data_manager.calculate_coins_earned_in_game(self.player_name, self.score, self.game_mode)
-            result = messagebox.askyesno("Exit Game", 
-                                       f"Are you sure you want to exit?\n\nCurrent Score: {self.score}\nDifficulty: {self.difficulty.capitalize()}\nGold Coins Earned: {coins_earned}\n\nYour score will be saved before exiting.")
+            return_message = "Are you sure you want to return to the start menu?\n\nCurrent Score: " + str(self.score) + "\nDifficulty: " + self.difficulty.capitalize() + "\n\nYour score will be saved before returning."
+            result = messagebox.askyesno("Return to Start Menu", return_message)
             if result:
-                self.data_manager.update_leaderboard(self.player_name, self.score, self.difficulty)
-                messagebox.showinfo("Score Saved", f"Your score of {self.score} has been saved to the leaderboard!\nGold Coins Earned: {coins_earned}")
+                self.dataMgr.updateLeaderboard(self.playerName, self.score, self.difficulty)
+                save_message = "Your score of " + str(self.score) + " has been saved to the leaderboard!"
+                messagebox.showinfo("Score Saved", save_message)
+                self.createStartMenu()
+            else:
+                self.startTimer()
+        else:
+            self.createStartMenu()
+
+    def confirmExit(self):
+        """Handle exit confirmation"""
+        # handles exit confirmation
+        if hasattr(self, 'score') and self.score > 0:
+            if self.timerId:
+                self.root.after_cancel(self.timerId)
+                self.timerId = None
+            
+            exit_message = "Are you sure you want to exit?\n\nCurrent Score: " + str(self.score) + "\nDifficulty: " + self.difficulty.capitalize() + "\n\nYour score will be saved before exiting."
+            result = messagebox.askyesno("Exit Game", exit_message)
+            if result:
+                self.dataMgr.updateLeaderboard(self.playerName, self.score, self.difficulty)
+                save_message = "Your score of " + str(self.score) + " has been saved to the leaderboard!"
+                messagebox.showinfo("Score Saved", save_message)
                 self.root.quit()
             else:
-                self.start_timer()
+                self.startTimer()
         else:
             result = messagebox.askyesno("Exit Game", "Are you sure you want to exit?")
             if result:
