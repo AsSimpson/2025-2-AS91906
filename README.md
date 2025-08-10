@@ -3,3 +3,8 @@
 This program is design for students to pratise their math skills. It includes basic arithemics to Integration and Differetiation. The game borrowed ideas from Pokemon game.
 
 ## Requirements:
+pygame>=2.0.0
+Pillow>=8.0.0
+
+build-in libraries:
+tkinter, json, os, time, random, math, winsound, platform
